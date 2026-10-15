@@ -2,7 +2,7 @@
 
 **Test-time self-evolution for decentralized multi-agent systems, as a plug-in.**
 
-[Paper (arXiv, coming soon)](#citation) · [Project page](PROJECT_PAGE_URL)
+[Paper (arXiv, coming soon)](#citation) · [Project page](https://wuyalun.github.io/EvolveMAS/)
 
 EvolveMAS lets LLM agents improve from experience at test time without updating model weights. Each main agent is paired with its own **MemoryAgent**, which keeps an isolated Structured Memory outside the agent's reasoning context. During **Within-Episode Online Adaptation**, the MemoryAgent updates Episodic, Semantic and Working memory from the evidence the agent observed. During **Cross-Episode Knowledge Evolution**, the episode's memory and its task-native result are distilled into reusable Interaction Knowledge: **Interaction Strategies** and **Partner Profiles**, which are injected into later episodes. The same protocol covers cooperative, mixed-motive and adversarial settings. This package is a minimal, host-agnostic implementation of that protocol: your multi-agent system keeps its own agents, message routing and scoring, and calls three hooks.
 

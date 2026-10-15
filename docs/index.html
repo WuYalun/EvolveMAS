@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EvolveMAS</title>
+<meta name="description" content="EvolveMAS: a unified self-evolution framework for decentralized multi-agent systems across cooperative, mixed-motive, and adversarial settings.">
+<meta property="og:title" content="EvolveMAS: A Unified Self-Evolution Framework for Decentralized Multi-Agent Systems">
+<meta property="og:description" content="Each agent gets a MemoryAgent that governs its memory at test time and distills reusable partner profiles and interaction strategies across episodes, with model weights frozen.">
+<meta property="og:image" content="assets/img/teaserv11.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one centered reading column (~68ch) with figures allowed to run wider; section labels sit in a left gutter on desktop. */
+:root {
+  --bg: #f7f9fb;
+  --surface: #ffffff;
+  --fg: #16202c;
+  --muted: #566577;
+  --rule: #dbe2ea;
+  --within: #1f5fd6;      /* within-episode online adaptation (blue arrows in the paper) */
+  --cross: #1f8a68;       /* cross-episode knowledge evolution (green arrows) */
+  --coop: #17866a;
+  --mixed: #d9701f;
+  --adv: #d64545;
+  --code-bg: #0f1722;
+  --code-fg: #dfe7f1;
+  --shade: #eef2f6;
+  --hl: #e8f1ff;
+  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --col: 46rem;
+  --wide: 68rem;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141b; --surface: #151d27; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #263241;
+    --within: #6d9dff; --cross: #4cc39b; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373;
+    --code-bg: #0a0f15; --code-fg: #dfe7f1; --shade: #1b2531; --hl: #17263d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141b; --surface: #151d27; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #263241;
+  --within: #6d9dff; --cross: #4cc39b; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373;
+  --code-bg: #0a0f15; --code-fg: #dfe7f1; --shade: #1b2531; --hl: #17263d;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 400 1.0625rem/1.65 var(--font-body);
+  padding-inline: 1rem;
+  padding-block: 0;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--within); text-underline-offset: 0.18em; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--within); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { max-width: var(--wide); margin-inline: auto; }
+.col { max-width: var(--col); margin-inline: auto; }
+
+/* ---------- header ---------- */
+header.hero { padding-block: 4.5rem 2.5rem; text-align: left; }
+.eyebrow {
+  font: 500 0.78rem/1 var(--font-mono);
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+  display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center;
+}
+.regimes { display: inline-flex; gap: 0.35rem; }
+.regimes span { width: 0.6rem; height: 0.6rem; border-radius: 50%; display: inline-block; }
+h1 {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: clamp(2.6rem, 7vw, 4.6rem); line-height: 1; letter-spacing: -0.02em;
+  margin: 1.1rem 0 0.6rem;
+}
+h1 .evolve { color: var(--cross); }
+.subtitle {
+  font-family: var(--font-display); font-weight: 500;
+  font-size: clamp(1.2rem, 2.6vw, 1.6rem); line-height: 1.25; margin: 0; max-width: 34ch;
+  text-wrap: balance;
+}
+.authors { margin-top: 1.8rem; font-size: 1.02rem; line-height: 1.8; }
+.authors span { white-space: nowrap; }
+.authors sup, .affils sup { font-size: 0.68em; color: var(--muted); margin-left: 0.08em; }
+.affils { margin-top: 0.5rem; color: var(--muted); font-size: 0.93rem; line-height: 1.6;
+  display: flex; flex-wrap: wrap; gap: 0.15rem 1.1rem; }
+.corr { margin-top: 0.5rem; color: var(--muted); font-size: 0.88rem; }
+.corr code { font-family: var(--font-mono); font-size: 0.85em; user-select: all; }
+
+.links { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1.8rem; }
+.btn {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  padding: 0.55rem 1rem; border-radius: 999px;
+  border: 1px solid var(--fg); color: var(--fg); background: transparent;
+  font: 600 0.95rem/1 var(--font-body); text-decoration: none; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn:hover { background: var(--fg); color: var(--bg); }
+.btn svg { width: 1rem; height: 1rem; fill: currentColor; flex: none; }
+.btn.pending { border-style: dashed; color: var(--muted); border-color: var(--muted); cursor: default; }
+.btn.pending:hover { background: transparent; color: var(--muted); }
+.btn small { font-weight: 400; font-size: 0.78rem; }
+
+/* ---------- figures ---------- */
+figure { margin: 0; }
+.figure-card {
+  background: #ffffff; border: 1px solid var(--rule); border-radius: 10px;
+  padding: clamp(0.5rem, 2vw, 1.2rem);
+}
+figcaption { color: var(--muted); font-size: 0.92rem; line-height: 1.55; margin-top: 0.75rem; max-width: var(--col); }
+figcaption b { color: var(--fg); font-weight: 600; }
+.teaser { margin-top: 0.5rem; }
+
+/* ---------- sections ---------- */
+section { padding-block: 3.2rem; border-top: 1px solid var(--rule); }
+.sec-label {
+  font: 500 0.75rem/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 0.9rem;
+}
+h2 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: clamp(1.6rem, 3.6vw, 2.2rem); line-height: 1.15; letter-spacing: -0.01em;
+  margin: 0 0 1.1rem; text-wrap: balance;
+}
+h3 { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; line-height: 1.25; margin: 0 0 0.5rem; }
+p { margin: 0 0 1rem; }
+.lede { font-size: 1.15rem; line-height: 1.6; }
+.stack { display: flex; flex-direction: column; gap: 1.6rem; }
+
+/* abstract highlight row */
+.headline-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1rem; margin-top: 1.6rem; }
+.stat { border-top: 2px solid var(--fg); padding-top: 0.6rem; }
+.stat .num { font: 700 2rem/1 var(--font-display); font-variant-numeric: tabular-nums; }
+.stat .lbl { color: var(--muted); font-size: 0.9rem; line-height: 1.4; margin-top: 0.35rem; }
+
+/* two phases */
+.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.2rem; margin-top: 1.6rem; }
+.phase { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 1.2rem 1.3rem; min-width: 0; }
+.phase .tag { font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 0.45rem; margin-bottom: 0.7rem; }
+.phase .tag::before { content: ""; width: 1.6rem; height: 0.32rem; border-radius: 2px; background: currentColor; }
+.phase.within .tag { color: var(--within); }
+.phase.cross .tag { color: var(--cross); }
+.phase p { font-size: 0.98rem; margin-bottom: 0.8rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.chip { font: 500 0.8rem/1 var(--font-mono); padding: 0.4rem 0.6rem; border-radius: 6px; background: var(--shade); color: var(--fg); }
+.chip i { font-style: italic; font-family: var(--font-body); font-size: 0.95rem; color: var(--muted); margin-left: 0.15rem; }
+
+/* results table */
+.table-scroll { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 40rem; font-variant-numeric: tabular-nums; font-size: 0.95rem; }
+th, td { padding: 0.55rem 0.7rem; text-align: center; white-space: nowrap; }
+thead th { font-weight: 600; }
+thead tr.group th { font: 500 0.72rem/1.2 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; padding-top: 0.8rem; border-bottom: 2px solid; }
+thead tr.group th.coop { color: var(--coop); border-color: var(--coop); }
+thead tr.group th.mixed { color: var(--mixed); border-color: var(--mixed); }
+thead tr.group th.adv { color: var(--adv); border-color: var(--adv); }
+thead tr.group th.blank { border-color: transparent; }
+thead tr.metric th { border-bottom: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+td:first-child, th:first-child { text-align: left; }
+tbody tr + tr td { border-top: 1px solid var(--rule); }
+tbody tr.split td { border-top: 2px solid var(--rule); }
+td.src { background: var(--shade); }
+td.avg, th.avg { border-left: 1px solid var(--rule); }
+tr.ours td { background: var(--hl); font-weight: 600; }
+tr.ours td:first-child { color: var(--cross); }
+.best { font-weight: 700; }
+.second { text-decoration: underline; text-underline-offset: 0.2em; }
+.table-note { color: var(--muted); font-size: 0.88rem; margin-top: 0.7rem; }
+
+/* code */
+pre {
+  background: var(--code-bg); color: var(--code-fg); border-radius: 10px;
+  padding: 1.1rem 1.2rem; overflow-x: auto; margin: 0;
+  font: 400 0.86rem/1.6 var(--font-mono);
+}
+pre .c { color: #7f8ea3; }
+pre .k { color: #8fb6ff; }
+pre .s { color: #8fd9b8; }
+pre .h { color: #ffd38a; }
+.code-block { position: relative; min-width: 0; }
+.copy {
+  position: absolute; top: 0.6rem; right: 0.6rem;
+  font: 500 0.75rem/1 var(--font-mono); padding: 0.4rem 0.6rem; border-radius: 6px;
+  border: 1px solid #3a4758; background: #182231; color: #dfe7f1; cursor: pointer;
+}
+.copy:hover { background: #22304a; }
+.hooks { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+.hook { min-width: 0; }
+.hook code { font: 500 0.88rem/1.4 var(--font-mono); }
+.hook p { font-size: 0.94rem; color: var(--muted); margin: 0.3rem 0 0; }
+
+footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var(--muted); font-size: 0.88rem; }
+
+@media (min-width: 64rem) {
+  .gutter { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: 2.5rem; }
+  .gutter > .sec-label { margin-top: 0.7rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="eyebrow">
+    <span class="regimes" aria-hidden="true"><span style="background:var(--coop)"></span><span style="background:var(--mixed)"></span><span style="background:var(--adv)"></span></span>
+    <span>Cooperative · Mixed-motive · Adversarial</span>
+    <span>Preprint 2026</span>
+  </div>
+  <h1><span class="evolve">Evolve</span>MAS</h1>
+  <p class="subtitle">A Unified Self-Evolution Framework for Decentralized Multi-Agent Systems</p>
+
+  <div class="authors">
+    <span>Yalun Wu<sup>1</sup></span>,
+    <span>Qiwei Ma<sup>2</sup></span>,
+    <span>Bingbing Xu<sup>3</sup></span>,
+    <span>Dan Zhang<sup>1</sup></span>,
+    <span>Long Bai<sup>3</sup></span>,
+    <span>Boyang Wang<sup>4</sup></span>,
+    <span>Jiatong Li<sup>1</sup></span>,
+    <span>Zheqi Lv<sup>5</sup></span>,
+    <span>Shaozu Yuan<sup>6</sup></span>,
+    <span>Peiying Wang<sup>6</sup></span>,
+    <span>An Zhang<sup>7</sup></span>,
+    <span>Jiawei Wang<sup>1†</sup></span>,
+    <span>Tat-Seng Chua<sup>1†</sup></span>
+  </div>
+  <div class="affils">
+    <span><sup>1</sup>National University of Singapore</span>
+    <span><sup>2</sup>Hunan University</span>
+    <span><sup>3</sup>VIPL, Institute of Computing Technology, Chinese Academy of Sciences</span>
+    <span><sup>4</sup>Beihang University</span>
+    <span><sup>5</sup>Cornell University</span>
+    <span><sup>6</sup>Independent Researcher</span>
+    <span><sup>7</sup>University of Science and Technology of China</span>
+  </div>
+  <div class="corr">† Corresponding authors · <code>chuats@comp.nus.edu.sg</code></div>
+
+  <nav class="links" aria-label="Paper links">
+    <a class="btn" data-link="paper" href="#">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zM14 3.5V8h4.5z"/></svg>Paper
+    </a>
+    <a class="btn" data-link="arxiv" href="#">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v2H4zm0 5h16v2H4zm0 5h10v2H4zm0 5h10v2H4z"/></svg>arXiv
+    </a>
+    <a class="btn" data-link="code" href="#">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 16.6 4 12l4.6-4.6L10 8.8 6.8 12l3.2 3.2zm6.8 0L14 15.2l3.2-3.2L14 8.8l1.4-1.4L20 12z"/></svg>Code
+    </a>
+    <a class="btn" href="#bibtex">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7h4v4H8.5c0 1.4.6 2.3 2 2.6V16c-2.6-.3-3.5-2.3-3.5-4.8zm7 0h4v4h-2.5c0 1.4.6 2.3 2 2.6V16c-2.6-.3-3.5-2.3-3.5-4.8z"/></svg>BibTeX
+    </a>
+  </nav>
+</header>
+
+<figure class="teaser">
+  <div class="figure-card"><img src="assets/img/teaserv11.png" width="2124" height="954" alt="Three panels. Cooperative: agents split joint coding, cross-checking and evidence. Mixed-motive: agents negotiate budget shares and credit under partial conflict. Adversarial: agents with hidden roles debate and must judge untrusted talk."></div>
+  <figcaption><b>Three interaction regimes.</b> Decentralized agents meet partners whose goals are shared, partly in conflict, or opposed. EvolveMAS uses one memory schema and one update schedule for all three.</figcaption>
+</figure>
+
+<section id="abstract" class="gutter" style="margin-top:3rem">
+  <p class="sec-label">Abstract</p>
+  <div class="col" style="margin-inline:0">
+    <h2>Agents that learn from the partners they meet, without touching their weights</h2>
+    <p>Decentralized multi-agent systems (MAS) let large language model agents interact without centralized control. These agents need to adapt to one another at test time and reuse accumulated experience to refine their strategies for later interactions, across cooperative, mixed-motive, and adversarial settings. Existing approaches usually build adaptation mechanisms for one particular setting.</p>
+    <p>We propose <b>EvolveMAS</b>, a unified self-evolution framework that supports experience-driven adaptation within and across episodes. EvolveMAS pairs each main agent with a dedicated <b>MemoryAgent</b> for test-time memory governance, which keeps an isolated Structured Memory outside the main agent's reasoning context. During <b style="color:var(--within)">Within-Episode Online Adaptation</b>, the MemoryAgent updates episodic, semantic, and working memory from interaction evidence. During <b style="color:var(--cross)">Cross-Episode Knowledge Evolution</b>, the main agent uses its memory and the episode outcome to distill reusable knowledge: partner profiles and interaction strategies.</p>
+    <p>Across five benchmarks and six evaluation configurations spanning the three settings, EvolveMAS reaches the highest normalized average score among the compared methods. Ablations show that test-time memory governance and cross-episode knowledge reuse each improve performance.</p>
+    <div class="headline-stats">
+      <div class="stat"><div class="num">77.2</div><div class="lbl">normalized average over six configurations, the best among compared methods</div></div>
+      <div class="stat"><div class="num">+9.7</div><div class="lbl">points over the strongest setting-specific baseline</div></div>
+      <div class="stat"><div class="num">+7.7</div><div class="lbl">points over Self-Memory, which keeps memory inside the agent's own reasoning context</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="method" class="gutter">
+  <p class="sec-label">Method</p>
+  <div class="stack" style="min-width:0">
+    <div class="col" style="margin-inline:0">
+      <h2>Execute, Evaluate, Evolve</h2>
+      <p class="lede">Every agent runs the same episode loop. A MemoryAgent sits beside it, turns what the agent observed into Structured Memory, and hands back a compact view before the agent acts.</p>
+    </div>
+    <figure>
+      <div class="figure-card"><img src="assets/img/fig_main0932.png" width="2925" height="1473" loading="lazy" alt="Overview diagram. The upper lane shows the main agent's Execute, Evaluate, Evolve cycle leading to the next episode. The lower lane shows the MemoryAgent turning the interaction trajectory into Structured Memory with Episodic, Semantic and Working regions."></div>
+      <figcaption><b>Overview.</b> Upper lane: the main agent's Execute–Evaluate–Evolve cycle. Lower lane: the MemoryAgent that maintains Structured Memory. Blue arrows are within-episode updates; green arrows are cross-episode evolution.</figcaption>
+    </figure>
+    <div class="phases">
+      <div class="phase within">
+        <div class="tag">Within episode · every turn</div>
+        <h3>Online Adaptation</h3>
+        <p>After each turn, the MemoryAgent reads the new interaction evidence and updates the agent's memory. The main agent never carries the raw transcript in its own context.</p>
+        <div class="chips">
+          <span class="chip">Episodic <i>E</i></span>
+          <span class="chip">Semantic <i>S</i></span>
+          <span class="chip">Working <i>W</i></span>
+        </div>
+      </div>
+      <div class="phase cross">
+        <div class="tag">Across episodes · after evaluation</div>
+        <h3>Knowledge Evolution</h3>
+        <p>When an episode ends, the task-native result is used to revise the agent's Interaction Knowledge, which carries into the next episode while working memory is reset.</p>
+        <div class="chips">
+          <span class="chip">Interaction Strategies <i>G</i></span>
+          <span class="chip">Partner Profiles <i>P</i></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="results" class="gutter">
+  <p class="sec-label">Results</p>
+  <div class="stack" style="min-width:0">
+    <div class="col" style="margin-inline:0">
+      <h2>One protocol across all three regimes</h2>
+      <p>Each baseline comes from one setting (its native benchmarks are shaded) and is transferred to the other settings under the same self-evolution protocol. EvolveMAS is best or second-best in every column.</p>
+    </div>
+    <div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr class="group">
+              <th class="blank"></th>
+              <th class="coop" colspan="2">Cooperative</th>
+              <th class="mixed" colspan="2">Mixed-motive</th>
+              <th class="adv" colspan="2">Adversarial</th>
+              <th class="blank avg"></th>
+            </tr>
+            <tr class="metric">
+              <th>Method</th><th>BBH</th><th>HumanEval</th><th>SOTOPIA</th><th>Deliberation</th><th>WW-V</th><th>WW-W</th><th class="avg">Avg.</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>AgentNet</td><td class="src">79</td><td class="second">95.7</td><td>0.554</td><td>2.60</td><td>51.0</td><td>45.0</td><td class="avg">61.6</td></tr>
+            <tr><td>ChatDev</td><td>73</td><td class="src second">95.7</td><td>0.509</td><td>2.06</td><td>53.0</td><td>49.0</td><td class="avg">59.3</td></tr>
+            <tr><td>SOTOPIA</td><td>72</td><td class="second">95.7</td><td class="src best">0.618</td><td>3.14</td><td>55.0</td><td class="second">57.0</td><td class="avg">65.6</td></tr>
+            <tr><td>LLM-Deliberation</td><td>74</td><td>93.9</td><td>0.450</td><td class="src second">4.92</td><td class="best">64.0</td><td>46.0</td><td class="avg">67.5</td></tr>
+            <tr><td>Werewolf/DPIns</td><td>72</td><td>92.7</td><td>0.588</td><td>3.41</td><td class="src">55.0</td><td class="src">44.0</td><td class="avg">63.2</td></tr>
+            <tr class="split"><td>Self-Memory</td><td class="second">82</td><td class="second">95.7</td><td>0.576</td><td>4.90</td><td>58.0</td><td>42.0</td><td class="avg second">69.5</td></tr>
+            <tr class="ours"><td>EvolveMAS</td><td class="best">83</td><td class="best">97.0</td><td class="second">0.613</td><td class="best">5.40</td><td class="second">62.0</td><td class="best">70.0</td><td class="avg best">77.2</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">WW-V and WW-W are village win rate and wolf deception success in one-sided Werewolf audits. Avg. is the mean of six percentage-scaled metrics (SOTOPIA × 100, Deliberation × 100/6). Bold is best, underline second-best, ties included.</p>
+    </div>
+    <figure>
+      <div class="figure-card"><img src="assets/img/fig_combined_results_evolution.png" width="2100" height="1317" loading="lazy" alt="Seven line charts of cumulative mean scores over tasks or games for EvolveMAS and the native baseline in each setting, with the paired difference on a secondary axis."></div>
+      <figcaption><b>Improvement accumulates within a session.</b> Cumulative means for EvolveMAS and the native baseline in each setting; the thick green line is the paired difference (EvolveMAS − native) on the right axis. Shading marks early, unstable tasks or games.</figcaption>
+    </figure>
+    <figure>
+      <div class="figure-card"><img src="assets/img/fig_delib_2x2_ablation.png" width="2400" height="634" loading="lazy" alt="Two-by-two ablation on LLM-Deliberation crossing memory governance (Self-Memory or MemoryAgent) with cross-episode knowledge (off or on), with an effect summary."></div>
+      <figcaption><b>Both components matter.</b> On LLM-Deliberation, rows vary memory governance and columns vary cross-episode knowledge. Replacing Self-Memory with an external MemoryAgent raises unanimity, and knowledge reuse adds a further gain. Each cell is one run of 50 sessions.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="case" class="gutter">
+  <p class="sec-label">Case study</p>
+  <div class="stack" style="min-width:0">
+    <div class="col" style="margin-inline:0">
+      <h2>What the memory looks like in a negotiation</h2>
+      <p>An instrumented SOTOPIA episode. Within the episode, new evidence is written into Structured Memory turn by turn. After it ends, the outcome is distilled into strategies and a partner profile that shape the next negotiation.</p>
+    </div>
+    <figure>
+      <div class="figure-card"><img src="assets/img/fig_sotopia_case_study.png" width="2038" height="809" loading="lazy" alt="Two panels. Panel a shows Structured Memory entries written at the current turn in green and carried-over entries in yellow. Panel b shows Interaction Strategies and Partner Profiles distilled after the episode."></div>
+      <figcaption><b>(a)</b> Within-Episode Online Adaptation: entries written at the current turn are green, carried-over entries yellow. <b>(b)</b> Cross-Episode Knowledge Evolution.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="plugin" class="gutter">
+  <p class="sec-label">Use it</p>
+  <div class="stack" style="min-width:0">
+    <div class="col" style="margin-inline:0">
+      <h2>A plug-in for the agents you already have</h2>
+      <p>The <code>evolvemas</code> package adds the MemoryAgent and the knowledge step to an existing multi-agent system through three calls. Your system keeps control of who sees which message and how an episode is scored.</p>
+    </div>
+    <div class="code-block">
+      <button class="copy" type="button" data-copy="quickstart">Copy</button>
+<pre id="quickstart"><span class="c"># pip install "evolvemas[anthropic] @ git+https://github.com/WuYalun/EvolveMAS"</span>
+<span class="k">from</span> evolvemas <span class="k">import</span> EvolveMAS, AnthropicLLM
+
+plugin = EvolveMAS(<span class="s">"runs/memory"</span>, AnthropicLLM())
+plugin.register(<span class="s">"seller"</span>, profile=<span class="s">"sells an antique table"</span>)
+
+<span class="k">for</span> episode <span class="k">in</span> episodes:
+    plugin.begin_episode(<span class="s">"seller"</span>)
+    <span class="k">for</span> turn <span class="k">in</span> episode:
+        memory = plugin.<span class="h">context</span>(<span class="s">"seller"</span>)           <span class="c"># inject before the agent acts</span>
+        reply = my_agent(prompt + memory)
+        plugin.<span class="h">observe</span>(<span class="s">"seller"</span>, [reply, partner_msg])  <span class="c"># MemoryAgent updates memory</span>
+    plugin.<span class="h">end_episode</span>(<span class="s">"seller"</span>, result)             <span class="c"># distill strategies and profiles</span></pre>
+    </div>
+    <div class="hooks">
+      <div class="hook"><code style="color:var(--within)">context(agent)</code><p>Returns the memory and knowledge block to put in the agent's prompt.</p></div>
+      <div class="hook"><code style="color:var(--within)">observe(agent, events)</code><p>Logs what the agent saw and runs the MemoryAgent update.</p></div>
+      <div class="hook"><code style="color:var(--cross)">end_episode(agent, result)</code><p>Revises Interaction Strategies and Partner Profiles from the outcome.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="bibtex" class="gutter">
+  <p class="sec-label">Citation</p>
+  <div class="stack" style="min-width:0">
+    <h2 style="margin:0">BibTeX</h2>
+    <div class="code-block">
+      <button class="copy" type="button" data-copy="bib">Copy</button>
+<pre id="bib">@article{wu2026evolvemas,
+  title   = {EvolveMAS: A Unified Self-Evolution Framework for Decentralized Multi-Agent Systems},
+  author  = {Wu, Yalun and Ma, Qiwei and Xu, Bingbing and Zhang, Dan and Bai, Long and
+             Wang, Boyang and Li, Jiatong and Lv, Zheqi and Yuan, Shaozu and Wang, Peiying and
+             Zhang, An and Wang, Jiawei and Chua, Tat-Seng},
+  journal = {arXiv preprint arXiv:<span data-arxiv-id>XXXX.XXXXX</span>},
+  year    = {2026}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div>EvolveMAS project page. Figures are from the paper.</div>
+</footer>
+
+</div>
+<script>
+/* Fill these in when the links exist. Empty values render as "coming soon". */
+var LINKS = {
+  paper: "",   // e.g. "https://arxiv.org/pdf/2610.xxxxx"
+  arxiv: "",   // e.g. "https://arxiv.org/abs/2610.xxxxx"
+  code:  "https://github.com/WuYalun/EvolveMAS"
+};
+var ARXIV_ID = ""; // e.g. "2610.xxxxx"
+
+document.querySelectorAll("[data-link]").forEach(function (a) {
+  var url = LINKS[a.getAttribute("data-link")];
+  if (url) {
+    a.href = url; a.target = "_blank"; a.rel = "noopener";
+  } else {
+    a.classList.add("pending");
+    a.removeAttribute("href");
+    a.setAttribute("aria-disabled", "true");
+    a.insertAdjacentHTML("beforeend", " <small>soon</small>");
+  }
+});
+if (ARXIV_ID) document.querySelectorAll("[data-arxiv-id]").forEach(function (s) { s.textContent = ARXIV_ID; });
+
+document.querySelectorAll("[data-copy]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var el = document.getElementById(btn.getAttribute("data-copy"));
+    var text = el.innerText;
+    function done(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copy"; }, 1600); }
+    function fallback() {
+      var r = document.createRange(); r.selectNodeContents(el);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      done("Selected");
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done("Copied"); }, fallback);
+    } else { fallback(); }
+  });
+});
+</script>
+</body>
+</html>
