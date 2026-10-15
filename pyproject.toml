@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evolvemas"
+version = "0.1.0"
+description = "Test-time self-evolution for decentralized multi-agent systems, as a plug-in: a MemoryAgent per agent plus cross-episode knowledge distillation."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [{name = "The EvolveMAS Authors"}]
+keywords = ["multi-agent systems", "LLM agents", "memory", "self-evolution", "test-time adaptation"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.optional-dependencies]
+anthropic = ["anthropic>=0.94"]
+openai = ["openai>=1.0"]
+dev = ["pytest>=7"]
+
+[tool.setuptools]
+packages = ["evolvemas"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
