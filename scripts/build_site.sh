@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Assemble the GitHub Pages site: the page in docs/ plus the package sources the demo runs in Pyodide.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+rm -rf _site
+cp -R docs _site
+mkdir -p _site/py/examples
+cp -R evolvemas _site/py/
+rm -rf _site/py/evolvemas/__pycache__
+cp examples/negotiation.py _site/py/examples/
+python3 - <<'PY'
+import json, pathlib, tomllib
+root = pathlib.Path("_site/py")
+files = sorted(str(p.relative_to(root)) for p in root.rglob("*.py"))
+version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
+(root / "manifest.json").write_text(json.dumps({"version": version, "files": files}, indent=1))
+print("site built:", len(files), "python files, version", version)
+PY
