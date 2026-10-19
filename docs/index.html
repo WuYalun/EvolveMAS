@@ -4,76 +4,121 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>EvolveMAS</title>
-<meta name="description" content="EvolveMAS is a plug-in that gives each agent in a multi-agent system a MemoryAgent and knowledge that evolves across episodes, with model weights frozen. Try it in the browser.">
-<meta property="og:title" content="EvolveMAS: memory that evolves, for multi-agent systems">
-<meta property="og:description" content="A three-call plug-in. Watch a seller agent learn from its buyer, live in your browser.">
+<meta name="description" content="EvolveMAS gives every agent in a multi-agent system a MemoryAgent for memory within an episode and knowledge that carries across episodes, with model weights frozen. A three-call plug-in.">
+<meta property="og:title" content="EvolveMAS: agents that learn from each other at test time">
+<meta property="og:description" content="Execute, evaluate, evolve. A three-call plug-in for multi-agent systems, with recorded runs on six benchmarks.">
 <meta property="og:image" content="assets/img/fig_main0932.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231c8564%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%2317805e%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="site.css">
 <style>
-/* Layout: compact hero, then a full-width demo console (controls / conversation / memory / outcome), then install, how it works, paper. */
-:root {
-  --bg: #f6f8fa;
-  --surface: #ffffff;
-  --surface-2: #eef2f6;
-  --fg: #16202c;
-  --muted: #5a6878;
-  --rule: #d9e0e8;
-  --within: #1f5fd6;      /* within-episode updates: context / observe */
-  --cross: #1c8564;       /* cross-episode evolution: end_episode */
-  --lena: #1c8564;
-  --marco: #7a4fd0;
-  --coop: #17866a; --mixed: #d9701f; --adv: #d64545;
-  --warn: #b5452f;
-  --new-bg: #e2f5ec;
-  --code-bg: #0f1722;
-  --code-fg: #dfe7f1;
-  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
-    --within: #6d9dff; --cross: #4cc39b; --lena: #4cc39b; --marco: #b294ff; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373; --warn: #f08a72; --new-bg: #173628;
-    --code-bg: #0a0f15; --code-fg: #dfe7f1;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
-  --within: #6d9dff; --cross: #4cc39b; --lena: #4cc39b; --marco: #b294ff; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373; --warn: #f08a72; --new-bg: #173628;
-  --code-bg: #0a0f15; --code-fg: #dfe7f1;
-  color-scheme: dark;
-}
+/* Layout: the page follows the method. Hero plays one recorded episode; "The loop" walks Execute → Evaluate → Evolve with
+   real data from that episode; "Two speeds" draws memory (blue lane) and knowledge (green lane) across episodes;
+   then the live demo, the evidence, the API and the paper. */
+:root { --within: var(--mem); --cross: var(--know); --lena: var(--know); --marco: #7a4fd0; --warn: var(--bad); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --marco: #b294ff; } }
+:root[data-theme="dark"] { --marco: #b294ff; }
 
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 400 1.0625rem/1.6 var(--font-body); padding-inline: 1rem; padding-block: 0; }
-img { max-width: 100%; height: auto; display: block; }
-a { color: var(--within); text-underline-offset: 0.18em; }
-button, input, select { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--within); outline-offset: 2px; border-radius: 4px; }
-.wrap { max-width: 76rem; margin-inline: auto; }
-.col { max-width: 46rem; }
-code { font-family: var(--font-mono); font-size: 0.88em; }
+/* hero */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; padding-block: 3.5rem 3rem; align-items: center; }
+@media (min-width: 62rem) { .hero { grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr); } }
+.hero h1 { font: 800 clamp(2.4rem, 5.6vw, 4.1rem)/1.02 var(--font-display); letter-spacing: -0.025em; margin: 0 0 1.1rem; }
+.hero h1 .mem { color: var(--mem); } .hero h1 .know { color: var(--know); }
+.hero .lede { margin-bottom: 1.5rem; }
+.cta { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+.meta { margin-top: 1.4rem; display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font: 400 0.8rem/1.4 var(--font-mono); color: var(--muted); }
+.stagecard { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.stagecard .top { display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--rule); font: 500 0.75rem/1.3 var(--font-mono); color: var(--muted); flex-wrap: wrap; }
+.stagecard .top a { color: var(--muted); }
+.stagecard svg { width: 100%; height: auto; display: block; }
+.caption { min-height: 4.4rem; padding: 0.7rem 0.95rem 0.85rem; border-top: 1px solid var(--rule); font-size: 0.93rem; line-height: 1.45; }
+.fl-kind { font: 500 0.68rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; padding: 0.2rem 0.35rem; border-radius: 4px; margin-right: 0.35rem; vertical-align: 0.1em; }
+.fl-kind.k-mem { background: var(--mem-soft); color: var(--mem); } .fl-kind.k-know { background: var(--know-soft); color: var(--know); }
+.fl-kind.k-msg { background: var(--surface-2); color: var(--fg); } .fl-kind.k-env { background: var(--surface-2); color: var(--env); }
+.fl-link { stroke: var(--rule); stroke-width: 1; }
+.fl-env { fill: var(--surface-2); stroke: var(--env); stroke-width: 1.2; }
+.fl-env.hit-e { stroke-width: 3; }
+.fl-agent { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; }
+.fl-agent.on { stroke-width: 4; }
+.fl-ma { fill: var(--surface); stroke: var(--mem); stroke-width: 1.2; }
+.fl-store { fill: var(--surface-2); stroke: var(--rule); }
+.fl-store.hit-m { fill: var(--mem); } .fl-store.hit-k { fill: var(--know); }
+.fl-label { font: 600 12px var(--font-body); fill: var(--fg); }
+.fl-small { font: 400 10px var(--font-mono); fill: var(--muted); }
+.fl-tiny { font: 500 8px var(--font-mono); fill: var(--muted); }
 
-/* ---------- hero ---------- */
-.hero { padding-block: 3.5rem 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4rem; }
-.brand { font: 800 clamp(2.4rem, 6vw, 3.8rem)/1 var(--font-display); letter-spacing: -0.02em; margin: 0; }
-.brand .evolve { color: var(--cross); }
-.pitch { font: 500 clamp(1.25rem, 2.6vw, 1.7rem)/1.25 var(--font-display); margin: 0; max-width: 30ch; text-wrap: balance; }
-.sub { color: var(--muted); max-width: 60ch; margin: 0; }
-.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: center; }
-.install { display: inline-flex; align-items: center; gap: 0.6rem; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 0.55rem 0.6rem 0.55rem 0.9rem; font: 400 0.86rem/1.3 var(--font-mono); max-width: 100%; min-width: 0; }
-.install span { overflow-x: auto; white-space: nowrap; }
-.install button { border: 1px solid #3a4758; background: #182231; color: #dfe7f1; border-radius: 6px; padding: 0.3rem 0.55rem; font: 500 0.75rem/1 var(--font-mono); cursor: pointer; flex: none; }
-.btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.55rem 1rem; border-radius: 999px; border: 1px solid var(--fg); background: transparent; font: 600 0.95rem/1 var(--font-body); text-decoration: none; color: var(--fg); cursor: pointer; }
-.btn:hover { background: var(--fg); color: var(--bg); }
-.btn svg { width: 1rem; height: 1rem; fill: currentColor; }
+/* the loop */
+.loop { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; margin-top: 2rem; }
+@media (min-width: 62rem) { .loop { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.step { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
+.step .head { padding: 1.1rem 1.15rem 0.9rem; }
+.step .num { font: 500 0.75rem/1 var(--font-mono); color: var(--muted); letter-spacing: 0.06em; }
+.step h3 { font-size: 1.45rem; margin: 0.35rem 0 0.35rem; }
+.step.ex h3 { color: var(--mem); } .step.ev h3 { color: var(--env); } .step.evo h3 { color: var(--know); }
+.step p { color: var(--muted); font-size: 0.97rem; margin: 0; }
+.step pre.code { border-radius: 0; }
+.step .real { padding: 0.8rem 1.15rem 1.1rem; border-top: 1px solid var(--rule); font-size: 0.88rem; flex: 1; }
+.step .real .lbl { font: 500 0.68rem/1.2 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
+.step .real .box { background: var(--surface-2); border-radius: 6px; padding: 0.55rem 0.65rem; font: 400 0.78rem/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 11rem; overflow-y: auto; }
+.arrow-row { display: none; }
+
+/* two speeds */
+.lanes { margin-top: 2rem; overflow-x: auto; }
+.lanes-grid { display: grid; grid-template-columns: 9rem repeat(3, minmax(13rem, 1fr)); min-width: 50rem; }
+.lanes-grid > div { padding: 0.75rem 0.85rem; border-bottom: 1px solid var(--rule); min-width: 0; }
+.lanes-grid .colh { font: 500 0.75rem/1.3 var(--font-mono); color: var(--muted); border-bottom: 1px solid var(--rule); }
+.lanes-grid .colh b { color: var(--fg); font-weight: 500; }
+.lanes-grid .rowh { font: 700 0.95rem/1.25 var(--font-display); }
+.lanes-grid .rowh small { display: block; font: 400 0.78rem/1.35 var(--font-body); color: var(--muted); margin-top: 0.2rem; }
+.lane-k { background: var(--know-soft); } .lane-m { background: var(--mem-soft); }
+.lane-k.rowh { color: var(--know); } .lane-m.rowh { color: var(--mem); }
+.lanes-grid .cell { font-size: 0.84rem; line-height: 1.45; }
+.lanes-grid .cell ul { margin: 0; padding-left: 1rem; }
+.lanes-grid .cell li + li { margin-top: 0.2rem; }
+.lane-k.cell { border-left: 1px dashed color-mix(in srgb, var(--know) 45%, transparent); }
+.lane-m.cell { border-left: 3px solid var(--bg); }
+.tagline { font: 500 0.72rem/1 var(--font-mono); color: var(--muted); }
+.carry { color: var(--know); font: 500 0.75rem/1.3 var(--font-mono); }
+.reset { color: var(--mem); font: 500 0.75rem/1.3 var(--font-mono); }
+
+/* evidence */
+.evidence { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; margin-top: 2rem; }
+@media (min-width: 62rem) { .evidence { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); } }
+.tbl { overflow-x: auto; }
+table.res { border-collapse: collapse; width: 100%; min-width: 34rem; font-variant-numeric: tabular-nums; font-size: 0.88rem; }
+table.res th, table.res td { padding: 0.45rem 0.55rem; text-align: center; white-space: nowrap; }
+table.res td:first-child, table.res th:first-child { text-align: left; }
+table.res thead th { font: 500 0.7rem/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); border-bottom: 1px solid var(--rule); }
+table.res tbody tr + tr td { border-top: 1px solid var(--rule); }
+table.res tr.ours td { background: var(--know-soft); font-weight: 600; }
+table.res .b { font-weight: 700; }
+.cards { display: grid; gap: 0.7rem; }
+.lcard { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0.2rem 1rem; align-items: center; padding: 0.9rem 1rem; text-decoration: none; color: var(--fg); background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; }
+.lcard:hover { border-color: var(--fg); }
+.lcard b { font: 700 1.02rem/1.25 var(--font-display); }
+.lcard span { color: var(--muted); font-size: 0.88rem; grid-column: 1; }
+.lcard i { font-style: normal; grid-row: 1 / span 2; grid-column: 2; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.3rem; grid-column: 1; }
+.chips .pill.c { color: var(--coop); } .chips .pill.m { color: var(--mixed); } .chips .pill.a { color: var(--adv); }
+
+/* api */
+.api { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.6rem; margin-top: 1.4rem; }
+@media (min-width: 62rem) { .api { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); } }
+.hooks { display: grid; gap: 0.9rem; }
+.hook code { font-weight: 500; font-size: 0.92rem; }
+.hook span { display: block; color: var(--muted); font-size: 0.95rem; }
+
+/* paper */
+.paper { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.6rem; margin-top: 1rem; }
+@media (min-width: 62rem) { .paper { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.authors { font-size: 0.98rem; line-height: 1.75; }
+.authors sup { font-size: 0.68em; color: var(--muted); }
+.affils { color: var(--muted); font-size: 0.86rem; display: flex; flex-wrap: wrap; gap: 0.1rem 1rem; margin-top: 0.4rem; }
+figure { margin: 0; } figcaption { color: var(--muted); font-size: 0.88rem; margin-top: 0.6rem; }
+.figure-card { background: #fff; border: 1px solid var(--rule); border-radius: 10px; padding: 0.7rem; }
+details summary { cursor: pointer; font-weight: 600; }
 
 /* ---------- demo console ---------- */
 .demo { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
@@ -167,48 +212,79 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .explain b { color: var(--fg); }
 .honest { font-size: 0.85rem; border-left: 2px solid var(--rule); padding-left: 0.7rem; }
 
-/* ---------- sections ---------- */
-section { padding-block: 3.2rem; border-top: 1px solid var(--rule); }
-.demo + section { margin-top: 3.2rem; }
-.sec-label { font: 500 0.75rem/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.9rem; }
-h2 { font: 700 clamp(1.5rem, 3.4vw, 2.1rem)/1.15 var(--font-display); letter-spacing: -0.01em; margin: 0 0 1rem; text-wrap: balance; }
-p { margin: 0 0 1rem; }
-.split { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2rem; }
-@media (min-width: 60rem) { .split { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
-pre.code { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 1.1rem 1.2rem; overflow-x: auto; margin: 0; font: 400 0.84rem/1.6 var(--font-mono); }
-pre.code .c { color: #7f8ea3; } pre.code .k { color: #8fb6ff; } pre.code .s { color: #8fd9b8; } pre.code .h { color: #ffd38a; }
-.hooks { display: grid; gap: 0.9rem; }
-.hook { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.15rem; }
-.hook code { font-weight: 500; }
-.hook span { color: var(--muted); font-size: 0.95rem; }
-.figure-card { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: clamp(0.5rem, 2vw, 1rem); }
-figure { margin: 0; }
-figcaption { color: var(--muted); font-size: 0.9rem; margin-top: 0.7rem; }
-.phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; margin-top: 1.4rem; }
-.phase { border-top: 3px solid; padding-top: 0.7rem; }
-.phase.within { border-color: var(--within); } .phase.cross { border-color: var(--cross); }
-.phase h3 { font: 700 1.05rem/1.25 var(--font-display); margin: 0 0 0.35rem; }
-.phase p { font-size: 0.95rem; color: var(--muted); margin: 0; }
-details { margin-top: 1rem; }
-summary { cursor: pointer; font-weight: 600; }
-footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var(--muted); font-size: 0.88rem; }
-@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+
+.demo { margin-top: 1.6rem; }
 </style>
 </head>
 <body>
+<header class="nav"><div class="wrap">
+  <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--know)"/><path d="M9 9h13v3H13v3h8v3h-8v3h9v3H9z" fill="#fff"/></svg><span><span class="e">Evolve</span>MAS</span></a>
+  <nav aria-label="Sections">
+    <a href="#loop">The loop</a><a href="#speeds">Memory and knowledge</a><a href="#try">Try it</a><a href="#evidence">Results</a><a href="replay.html">Recorded runs</a><a href="#use">Use it</a><a href="#paper">Paper</a>
+  </nav>
+  <a class="btn gh" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>GitHub</a>
+</div></header>
+
 <div class="wrap">
 
-<header class="hero">
-  <h1 class="brand"><span class="evolve">Evolve</span>MAS</h1>
-  <p class="pitch">Memory that evolves, for the agents you already have.</p>
-  <p class="sub">A plug-in for multi-agent systems. Each agent gets its own MemoryAgent that keeps structured memory during an episode, and knowledge about partners and strategies that carries into the next one. Model weights stay frozen; integration is three calls.</p>
-  <div class="cta">
-    <div class="install"><span id="pipcmd">pip install "evolvemas[anthropic] @ git+https://github.com/WuYalun/EvolveMAS"</span><button type="button" data-copy="pipcmd">Copy</button></div>
-    <a class="btn" href="replay.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Benchmark replays</a>
-    <a class="btn" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>GitHub</a>
+<section class="hero" aria-label="Introduction">
+  <div>
+    <p class="eyebrow">Test-time self-evolution for multi-agent systems</p>
+    <h1>Agents that learn from each other, <span class="mem">within</span> an episode and <span class="know">across</span> episodes.</h1>
+    <p class="lede">EvolveMAS pairs every agent with a MemoryAgent. It keeps structured memory while the agents interact, then turns each outcome into knowledge about partners and strategies for the next episode. Model weights stay frozen; your system adds three calls.</p>
+    <div class="cta">
+      <a class="btn solid" href="#try">Try it in the browser</a>
+      <a class="btn" href="replay.html">Watch recorded runs</a>
+      <a class="btn" data-link="paper" href="#paper">Paper</a>
+    </div>
+    <div class="cta" style="margin-top:0.8rem">
+      <div class="install"><span id="pipcmd">pip install "evolvemas[anthropic] @ git+https://github.com/WuYalun/EvolveMAS"</span><button type="button" data-copy="pipcmd">Copy</button></div>
+    </div>
   </div>
-</header>
+  <figure class="stagecard" aria-label="A recorded episode, playing">
+    <div class="top"><span>Recorded run · GSM8K multiagent debate · <span id="hero-prob">problem</span></span><span><button type="button" class="btn" id="hero-toggle" style="padding:0.2rem 0.55rem;font-size:0.75rem">Pause</button> <a href="replay.html#debate">Step through it →</a></span></div>
+    <svg id="hero-stage" role="img" aria-label="Three agents, their MemoryAgents, memory (M) and knowledge (K) stores, and the data moving between them"></svg>
+    <div class="caption" id="hero-caption" aria-live="off">Loading the recording…</div>
+  </figure>
+</section>
 
+<section class="section" id="loop">
+  <p class="eyebrow">The loop</p>
+  <h2>Execute, evaluate, evolve</h2>
+  <p class="lede">Every agent runs the same three steps in every episode. Below, each step shows the call your system makes and what it actually produced in the recorded episode above.</p>
+  <div class="loop">
+    <div class="step ex">
+      <div class="head"><span class="num">1 · within the episode, before each action</span><h3>Execute</h3><p>Agents interact as usual. Before an agent acts, <code>context()</code> hands it its memory and knowledge; after it sees new messages, <code>observe()</code> lets its MemoryAgent update the memory.</p></div>
+<pre class="code">memory = plugin.<span class="hm">context</span>(<span class="s">"agent_c"</span>)
+reply  = agent_c.solve(problem, memory)
+plugin.<span class="hm">observe</span>(<span class="s">"agent_c"</span>, round_messages)</pre>
+      <div class="real"><div class="lbl">What context() returned to Agent C in round 2</div><div class="box" id="real-context">…</div></div>
+    </div>
+    <div class="step ev">
+      <div class="head"><span class="num">2 · when the episode ends</span><h3>Evaluate</h3><p>Your task scores the episode its own way. EvolveMAS never sees how; it only receives the result, here the answer check.</p></div>
+<pre class="code">result = check(final_answers, answer_key)
+<span class="c"># task-native: accuracy, deal value, win/loss…</span></pre>
+      <div class="real"><div class="lbl">The result handed over</div><div class="box" id="real-result">…</div></div>
+    </div>
+    <div class="step evo">
+      <div class="head"><span class="num">3 · across episodes</span><h3>Evolve</h3><p><code>end_episode()</code> distills the memory and the result into knowledge: interaction strategies and a profile of each partner. Working memory resets; knowledge carries into the next episode.</p></div>
+<pre class="code">plugin.<span class="hk">end_episode</span>(<span class="s">"agent_a"</span>, result)</pre>
+      <div class="real"><div class="lbl">Agent A's profile of Agent C afterwards</div><div class="box" id="real-knowledge">…</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="speeds">
+  <p class="eyebrow">Memory and knowledge</p>
+  <h2>Two speeds of learning</h2>
+  <p class="lede"><span class="mem">Memory</span> is rebuilt inside each episode from what the agent saw. <span class="know">Knowledge</span> outlives the episode and is revised by each outcome. Here is Agent A's state across three consecutive problems of the recorded run.</p>
+  <div class="lanes card" id="lanes"><div style="padding:1rem;color:var(--muted)">Loading…</div></div>
+</section>
+
+<section class="section" id="try">
+  <p class="eyebrow">Try it</p>
+  <h2>Run the plug-in in your browser</h2>
+  <p class="lede">The real <code>evolvemas</code> package runs here with Pyodide. Scripted agents need no key; switch to a live model to use your own.</p>
 <!-- ======================= DEMO ======================= -->
 <div id="demo" class="demo" role="region" aria-label="Interactive demo">
   <div class="demo-head">
@@ -303,36 +379,45 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
   </div>
 </div>
 
-<!-- ======================= REPLAYS ======================= -->
-<section id="replays">
-  <p class="sec-label">On real benchmarks</p>
-  <div class="split">
-    <div>
-      <h2>Watch it on recognized multi-agent tasks</h2>
-      <p>We ran the plug-in on GSM8K multiagent debate and on one task from each of the paper's five benchmarks, with every agent attached, and recorded everything: who said what to whom, what each MemoryAgent read and wrote, and how knowledge changed after each episode. Step through the recordings to follow the data flow.</p>
-      <a class="btn" href="replay.html">Open the replays</a>
+
+</section>
+
+<section class="section" id="evidence">
+  <p class="eyebrow">Results</p>
+  <h2>One protocol across cooperative, mixed-motive and adversarial settings</h2>
+  <div class="evidence">
+    <div class="card" style="padding:1.1rem 1.15rem">
+      <h3>From the paper</h3>
+      <p style="color:var(--muted);font-size:0.95rem">Six configurations across five benchmarks. Each baseline is a method family from one setting, transferred to the others under the same protocol.</p>
+      <div class="tbl"><table class="res">
+        <thead><tr><th>Method</th><th>BBH</th><th>HumanEval</th><th>SOTOPIA</th><th>Deliberation</th><th>WW-V</th><th>WW-W</th><th>Avg.</th></tr></thead>
+        <tbody>
+          <tr><td>Strongest setting-specific baseline</td><td colspan="6" style="color:var(--muted)">LLM-Deliberation family</td><td>67.5</td></tr>
+          <tr><td>Self-Memory</td><td>82</td><td>95.7</td><td>0.576</td><td>4.90</td><td>58.0</td><td>42.0</td><td>69.5</td></tr>
+          <tr class="ours"><td>EvolveMAS</td><td class="b">83</td><td class="b">97.0</td><td>0.613</td><td class="b">5.40</td><td>62.0</td><td class="b">70.0</td><td class="b">77.2</td></tr>
+        </tbody>
+      </table></div>
+      <p style="color:var(--muted);font-size:0.85rem;margin:0.7rem 0 0">Avg. is the mean of six percentage-scaled metrics. Full table and baselines are in the paper.</p>
     </div>
-    <div class="hooks">
-      <div class="hook"><code style="color:var(--coop)">GSM8K debate · BBH · HumanEval</code><span>Cooperative: agents debate a math problem or a reasoning question; a planner, developer and tester write and test code.</span></div>
-      <div class="hook"><code style="color:var(--mixed)">SOTOPIA · LLM-Deliberation</code><span>Mixed-motive: a buyer and seller bargain; six parties negotiate a multi-issue deal.</span></div>
-      <div class="hook"><code style="color:var(--adv)">Werewolf</code><span>Adversarial: hidden roles, private night actions, public accusations and a vote.</span></div>
+    <div class="cards">
+      <a class="lcard" href="replay.html"><b>Recorded runs on six tasks</b><span>Step through every message, memory update and knowledge update.</span>
+        <span class="chips"><span class="pill c">GSM8K debate</span><span class="pill c">BBH</span><span class="pill c">HumanEval</span><span class="pill m">SOTOPIA</span><span class="pill m">Deliberation</span><span class="pill a">Werewolf</span></span><i>→</i></a>
+      <a class="lcard" href="longrun.html"><b>100 problems in a row</b><span>The same team with and without EvolveMAS, and how its knowledge changed over time.</span><i>→</i></a>
+      <a class="lcard" href="#paper"><b>The paper</b><span>Method, all baselines, ablations and analyses.</span><i>→</i></a>
     </div>
   </div>
 </section>
 
-<!-- ======================= INSTALL ======================= -->
-<section id="use">
-  <p class="sec-label">Add it to your system</p>
-  <div class="split">
-    <div>
-      <h2>Three calls around your existing loop</h2>
-      <p>Your system keeps its agents, its message routing and its scoring. EvolveMAS only sees what you hand it, so hidden-information games stay hidden.</p>
-      <div class="hooks">
-        <div class="hook"><code style="color:var(--within)">context(agent)</code><span>The memory and knowledge block to add to the agent's prompt before it acts.</span></div>
-        <div class="hook"><code style="color:var(--within)">observe(agent, events)</code><span>What the agent saw this turn. Its MemoryAgent updates Episodic, Semantic and Working memory.</span></div>
-        <div class="hook"><code style="color:var(--cross)">end_episode(agent, result)</code><span>Your task's own score. Interaction Strategies and Partner Profiles are revised from it.</span></div>
-      </div>
-      <p style="margin-top:1.2rem">Backends: Claude through the Anthropic SDK, any OpenAI-compatible endpoint, or any function <code>llm(system, user) -&gt; str</code>. Turn <code>online</code> or <code>evolve</code> off to ablate either phase.</p>
+<section class="section" id="use">
+  <p class="eyebrow">Use it</p>
+  <h2>Three calls around the loop you already have</h2>
+  <div class="api">
+    <div class="hooks">
+      <p style="margin:0">Your system keeps its agents, its message routing and its scoring. EvolveMAS only sees what you hand it, so hidden information stays hidden.</p>
+      <div class="hook"><code class="mem">context(agent)</code><span>Memory and knowledge to add to the agent's prompt before it acts.</span></div>
+      <div class="hook"><code class="mem">observe(agent, events)</code><span>What the agent saw. Its MemoryAgent updates Episodic, Semantic and Working memory.</span></div>
+      <div class="hook"><code class="know">end_episode(agent, result)</code><span>Your task's own result. Interaction Strategies and Partner Profiles are revised from it.</span></div>
+      <p style="margin:0;color:var(--muted);font-size:0.95rem">Backends: Claude, any OpenAI-compatible endpoint, or any function <code>llm(system, user) -&gt; str</code>. Turn <code>online</code> or <code>evolve</code> off to ablate either phase.</p>
     </div>
 <pre class="code"><span class="k">from</span> evolvemas <span class="k">import</span> EvolveMAS, AnthropicLLM
 
@@ -342,40 +427,30 @@ plugin = EvolveMAS(<span class="s">"runs/memory"</span>, AnthropicLLM())
 
 <span class="k">for</span> problem <span class="k">in</span> problems:
     <span class="k">for</span> a <span class="k">in</span> agents: plugin.begin_episode(a.name)
-    <span class="k">for</span> rnd <span class="k">in</span> range(2):
-        replies = {a.name: a.solve(problem, plugin.<span class="h">context</span>(a.name))
+    <span class="k">for</span> rnd <span class="k">in</span> range(<span class="s">2</span>):
+        replies = {a.name: a.solve(problem, plugin.<span class="hm">context</span>(a.name))
                    <span class="k">for</span> a <span class="k">in</span> agents}
         <span class="k">for</span> a <span class="k">in</span> agents:
-            plugin.<span class="h">observe</span>(a.name, list(replies.items()))
+            plugin.<span class="hm">observe</span>(a.name, list(replies.items()))
     result = check(replies, problem.answer)
-    <span class="k">for</span> a <span class="k">in</span> agents: plugin.<span class="h">end_episode</span>(a.name, result)</pre>
+    <span class="k">for</span> a <span class="k">in</span> agents: plugin.<span class="hk">end_episode</span>(a.name, result)</pre>
   </div>
 </section>
 
-<!-- ======================= HOW IT WORKS ======================= -->
-<section id="how">
-  <p class="sec-label">How it works</p>
-  <h2>Execute, evaluate, evolve</h2>
-  <figure>
-    <div class="figure-card"><img src="assets/img/fig_main0932.png" width="2925" height="1473" loading="lazy" alt="Overview diagram. The upper lane is the main agent's Execute, Evaluate, Evolve cycle. The lower lane is the MemoryAgent turning the interaction trajectory into Structured Memory with Episodic, Semantic and Working regions."></div>
-    <figcaption>Upper lane: the agent's episode loop. Lower lane: its MemoryAgent. Blue arrows are within-episode updates, green arrows cross-episode evolution.</figcaption>
-  </figure>
-  <div class="phases">
-    <div class="phase within"><h3>Within an episode</h3><p>After each turn the MemoryAgent turns new evidence into Episodic, Semantic and Working memory, kept outside the agent's own context so long sessions do not bloat its prompt.</p></div>
-    <div class="phase cross"><h3>Across episodes</h3><p>When an episode is scored, the outcome revises reusable Interaction Strategies and Partner Profiles. Working memory resets; knowledge carries over.</p></div>
-  </div>
-</section>
-
-<!-- ======================= PAPER ======================= -->
-<section id="paper">
-  <p class="sec-label">Research</p>
-  <div class="col">
-    <h2>Based on the EvolveMAS paper</h2>
-    <p>The paper evaluates the same protocol on five benchmarks covering cooperative, mixed-motive and adversarial interaction. EvolveMAS reaches the highest normalized average score among the compared methods, 77.2, which is 9.7 points above the strongest setting-specific baseline. The plug-in is a compact, host-agnostic implementation of that protocol; it is not the experiment code.</p>
-    <p style="color:var(--muted);font-size:0.95rem">Yalun Wu, Qiwei Ma, Bingbing Xu, Dan Zhang, Long Bai, Boyang Wang, Jiatong Li, Zheqi Lv, Shaozu Yuan, Peiying Wang, An Zhang, Jiawei Wang, Tat-Seng Chua. <span id="paper-link">arXiv link coming soon.</span></p>
-    <details>
-      <summary>BibTeX</summary>
-<pre class="code" id="bib" style="margin-top:0.8rem">@article{wu2026evolvemas,
+<section class="section" id="paper">
+  <p class="eyebrow">Paper</p>
+  <h2>EvolveMAS: A Unified Self-Evolution Framework for Decentralized Multi-Agent Systems</h2>
+  <div class="authors">Yalun Wu<sup>1</sup>, Qiwei Ma<sup>2</sup>, Bingbing Xu<sup>3</sup>, Dan Zhang<sup>1</sup>, Long Bai<sup>3</sup>, Boyang Wang<sup>4</sup>, Jiatong Li<sup>1</sup>, Zheqi Lv<sup>5</sup>, Shaozu Yuan<sup>6</sup>, Peiying Wang<sup>6</sup>, An Zhang<sup>7</sup>, Jiawei Wang<sup>1†</sup>, Tat-Seng Chua<sup>1†</sup></div>
+  <div class="affils"><span><sup>1</sup>National University of Singapore</span><span><sup>2</sup>Hunan University</span><span><sup>3</sup>VIPL, Institute of Computing Technology, Chinese Academy of Sciences</span><span><sup>4</sup>Beihang University</span><span><sup>5</sup>Cornell University</span><span><sup>6</sup>Independent Researcher</span><span><sup>7</sup>University of Science and Technology of China</span><span>† Corresponding authors</span></div>
+  <div class="cta" style="margin-top:1rem"><a class="btn" data-link="arxiv" href="#">arXiv</a><a class="btn" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener">Code</a></div>
+  <div class="paper" style="margin-top:1.6rem">
+    <figure><div class="figure-card"><img src="assets/img/fig_main0932.png" width="2925" height="1473" loading="lazy" alt="Overview of EvolveMAS. Upper lane: the main agent's Execute, Evaluate, Evolve cycle. Lower lane: the MemoryAgent maintaining Structured Memory with Episodic, Semantic and Working regions."></div>
+      <figcaption>Overview from the paper. Blue arrows are within-episode updates, green arrows cross-episode evolution.</figcaption></figure>
+    <div>
+      <p>Decentralized multi-agent systems let LLM agents interact without central control, across cooperative, mixed-motive and adversarial settings. EvolveMAS supports test-time adaptation within and across episodes with one protocol: a dedicated MemoryAgent keeps each agent's Structured Memory outside its reasoning context, and each episode's outcome is distilled into reusable partner profiles and interaction strategies. Across five benchmarks and six configurations it reaches the highest normalized average score among the compared methods, 77.2.</p>
+      <p style="color:var(--muted);font-size:0.92rem">The plug-in on this site is a compact, host-agnostic implementation of the protocol. It is not the paper's experiment code.</p>
+      <details><summary>BibTeX</summary>
+<pre class="code" id="bib" style="margin-top:0.7rem">@article{wu2026evolvemas,
   title   = {EvolveMAS: A Unified Self-Evolution Framework for Decentralized Multi-Agent Systems},
   author  = {Wu, Yalun and Ma, Qiwei and Xu, Bingbing and Zhang, Dan and Bai, Long and
              Wang, Boyang and Li, Jiatong and Lv, Zheqi and Yuan, Shaozu and Wang, Peiying and
@@ -383,35 +458,79 @@ plugin = EvolveMAS(<span class="s">"runs/memory"</span>, AnthropicLLM())
   journal = {arXiv preprint arXiv:<span data-arxiv-id>XXXX.XXXXX</span>},
   year    = {2026}
 }</pre>
-      <button type="button" class="btn" style="margin-top:0.7rem" data-copy="bib">Copy BibTeX</button>
-    </details>
+        <button type="button" class="btn" style="margin-top:0.6rem" data-copy="bib">Copy BibTeX</button></details>
+    </div>
   </div>
 </section>
 
-<footer>EvolveMAS · MIT License · <a href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener">github.com/WuYalun/EvolveMAS</a></footer>
+<footer class="site"><span>EvolveMAS · MIT License</span><span><a href="replay.html">Recorded runs</a> · <a href="longrun.html">Long run</a> · <a href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener">GitHub</a></span></footer>
 </div>
 
+<script src="flow.js"></script>
 <script>
 /* Fill in once the paper is on arXiv. */
-var ARXIV_ID = "";   // e.g. "2610.xxxxx"
-
+var ARXIV_ID = "";
 (function () {
-  if (ARXIV_ID) {
-    document.querySelectorAll("[data-arxiv-id]").forEach(function (s) { s.textContent = ARXIV_ID; });
-    var pl = document.getElementById("paper-link");
-    pl.innerHTML = '<a href="https://arxiv.org/abs/' + ARXIV_ID + '" target="_blank" rel="noopener">arXiv:' + ARXIV_ID + '</a>';
-  }
-
+  var LINKS = { paper: ARXIV_ID ? "https://arxiv.org/pdf/" + ARXIV_ID : "", arxiv: ARXIV_ID ? "https://arxiv.org/abs/" + ARXIV_ID : "" };
+  document.querySelectorAll("[data-link]").forEach(function (a) {
+    var u = LINKS[a.getAttribute("data-link")];
+    if (u) { a.href = u; a.target = "_blank"; a.rel = "noopener"; }
+    else if (a.getAttribute("data-link") === "arxiv") { a.classList.add("pending"); a.removeAttribute("href"); a.textContent = "arXiv (soon)"; }
+  });
+  if (ARXIV_ID) document.querySelectorAll("[data-arxiv-id]").forEach(function (s) { s.textContent = ARXIV_ID; });
   document.querySelectorAll("[data-copy]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var el = document.getElementById(btn.getAttribute("data-copy"));
-      var label = btn.textContent;
+      var el = document.getElementById(btn.getAttribute("data-copy")), label = btn.textContent;
       function done(m) { btn.textContent = m; setTimeout(function () { btn.textContent = label; }, 1500); }
       function fallback() { var r = document.createRange(); r.selectNodeContents(el); var s = getSelection(); s.removeAllRanges(); s.addRange(r); done("Selected"); }
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(el.innerText).then(function () { done("Copied"); }, fallback);
-      else fallback();
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(el.innerText).then(function () { done("Copied"); }, fallback); else fallback();
     });
   });
+
+  /* ---------- recorded episode: hero, the loop, the lanes ---------- */
+  var EP = 5;   // gsm8k-test-5: Agent C's first answer was wrong
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  fetch("runs/debate.json").then(function (r) { return r.json(); }).then(function (t) {
+    var ep = t.episodes[EP];
+    document.getElementById("hero-prob").textContent = ep.setup.problem;
+    var player = EvolveFlow.mount(document.getElementById("hero-stage"), document.getElementById("hero-caption"), t, EP, { focus: "agent_a" });
+    document.getElementById("hero-toggle").onclick = function () { this.textContent = player.toggle() ? "Pause" : "Play"; };
+
+    var ctx = ep.events.filter(function (e) { return e.t === "hook" && e.name === "context" && e.agent === "agent_c"; });
+    document.getElementById("real-context").textContent = (ctx[1] || ctx[0]).output || "(empty)";
+    var r = ep.result;
+    document.getElementById("real-result").textContent = JSON.stringify({ problem: r.problem, answer_key: r.gold, team_answer: r.team_answer, team_correct: r.team_correct,
+      agent_c: { first: r.answers.agent_c.round1, final: r.answers.agent_c.final } }, null, 1);
+    var endA = ep.events.filter(function (e) { return e.t === "hook" && e.name === "end_episode" && e.agent === "agent_a"; })[0];
+    var pc = endA.state.partners.agent_c;
+    document.getElementById("real-knowledge").textContent = pc ? "agent_c:\n  tendency:    " + pc.tendency + "\n  reliability: " + pc.reliability : "(no profile yet)";
+
+    // lanes: three consecutive problems for Agent A
+    var cols = [EP - 1, EP, EP + 1].filter(function (i) { return t.episodes[i]; });
+    function endState(i, a) { return t.episodes[i].events.filter(function (e) { return e.t === "hook" && e.name === "end_episode" && e.agent === a; })[0].state; }
+    function lastObs(i, a) { var o = t.episodes[i].events.filter(function (e) { return e.t === "hook" && e.name === "observe" && e.agent === a; }); return o[o.length - 1].state; }
+    var h = '<div class="lanes-grid"><div class="colh"></div>';
+    cols.forEach(function (i) {
+      var e = t.episodes[i], c = e.result.answers.agent_c;
+      h += '<div class="colh">Problem ' + (i + 1) + ' · <b>' + esc(e.setup.problem) + '</b><br>' + (c.round1_correct ? "Agent C right first time" : '<span style="color:var(--bad)">Agent C wrong first (' + esc(c.round1) + ')</span>') + '</div>';
+    });
+    h += '<div class="rowh lane-k">Knowledge<small>Agent A · carries over</small></div>';
+    cols.forEach(function (i, k) {
+      var s = endState(i, "agent_a"), p = s.partners.agent_c;
+      h += '<div class="cell lane-k">' + (k ? '<div class="carry">↳ carried from problem ' + i + ', then revised</div>' : '<div class="carry">after this problem</div>') +
+        '<ul><li><b>Agent C:</b> ' + esc(p ? p.reliability : "no profile yet") + '</li><li>' + s.strategies.length + ' strategies, e.g. “' + esc((s.strategies[s.strategies.length - 1] || "none")) + '”</li></ul></div>';
+    });
+    h += '<div class="rowh lane-m">Memory<small>Agent A · rebuilt each problem</small></div>';
+    cols.forEach(function (i) {
+      var s = lastObs(i, "agent_a");
+      var epi = s.episodic.filter(function (e) { return e.episode === i; });
+      h += '<div class="cell lane-m"><div class="reset">↺ working memory cleared at start</div><ul>' +
+        epi.slice(-2).map(function (e) { return '<li>' + esc(e.summary) + '</li>'; }).join("") +
+        '<li><i>Working:</i> ' + esc((s.working || "").slice(0, 140)) + (s.working && s.working.length > 140 ? "…" : "") + '</li></ul></div>';
+    });
+    h += '</div>';
+    document.getElementById("lanes").innerHTML = h;
+  }).catch(function (e) { document.getElementById("hero-caption").textContent = "The recording could not be loaded."; });
 
   /* ---------------- demo state ---------------- */
   var $ = function (id) { return document.getElementById(id); };
@@ -641,6 +760,7 @@ var ARXIV_ID = "";   // e.g. "2610.xxxxx"
     $("chart").innerHTML = g.join("");
   }
   drawChart();
+
 })();
 </script>
 </body>

@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EvolveMAS Long Run</title>
+<meta name="description" content="One debate team, 100 GSM8K problems in a row, with and without EvolveMAS: accuracy over time and how each agent's knowledge changed.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231c8564%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="site.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: summary numbers, two comparison charts, then a knowledge timeline (slider + per-agent knowledge with diffs). */
+:root { --on: var(--know); --off: #8a96a6; --within: var(--mem); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --off: #7d8a9a; } }
+:root[data-theme="dark"] { --off: #7d8a9a; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 1rem/1.55 var(--font-body); padding-inline: 1rem; padding-block: 0; }
+a { color: var(--within); text-underline-offset: 0.18em; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--within); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: 0.86em; }
+.wrap { max-width: 76rem; margin-inline: auto; }
+.wrap > header { padding-block: 2rem 1.4rem; }
+.back { font: 500 0.8rem/1 var(--font-mono); color: var(--muted); text-decoration: none; }
+h1 { font: 800 clamp(1.8rem, 4vw, 2.6rem)/1.05 var(--font-display); margin: 0.5rem 0 0; letter-spacing: -0.01em; }
+.lede { color: var(--muted); max-width: 66ch; margin: 0.6rem 0 0; }
+h2 { font: 700 1.25rem/1.25 var(--font-display); margin: 0 0 0.3rem; }
+.sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 0.9rem; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 1.1rem 1.2rem 1.2rem; }
+.stack { display: grid; gap: 1.2rem; padding-bottom: 3rem; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; }
+.stat { border-top: 2px solid var(--fg); padding-top: 0.55rem; min-width: 0; }
+.stat .lbl { color: var(--muted); font-size: 0.88rem; line-height: 1.35; }
+.stat .vals { display: flex; gap: 1rem; align-items: baseline; margin-top: 0.25rem; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.stat .v { font: 700 1.7rem/1 var(--font-display); }
+.stat .v small { font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-top: 0.3rem; }
+.v.on { color: var(--on); } .v.off { color: var(--off); }
+
+.charts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
+@media (min-width: 60rem) { .charts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+svg.chart { width: 100%; height: auto; display: block; }
+.axis { stroke: var(--rule); }
+.tick { fill: var(--muted); font: 400 11px var(--font-mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
+.legend i { display: inline-block; width: 1.1rem; height: 0.22rem; border-radius: 2px; vertical-align: 0.22em; margin-right: 0.35rem; }
+
+.timeline-head { display: flex; flex-wrap: wrap; gap: 0.6rem 1.2rem; align-items: center; justify-content: space-between; }
+.slider { display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 16rem; }
+.slider input { flex: 1; accent-color: var(--on); }
+.slider output { font: 500 0.9rem/1 var(--font-mono); min-width: 6.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+.stepbtn { border: 1px solid var(--rule); background: transparent; border-radius: 8px; padding: 0.3rem 0.6rem; cursor: pointer; }
+.picker { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.picker button { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 0.25rem 0.7rem; cursor: pointer; font-size: 0.85rem; }
+.picker button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.changes { margin-top: 0.8rem; }
+.changes svg { width: 100%; height: 3.2rem; display: block; cursor: pointer; }
+
+.tl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; margin-top: 1rem; }
+@media (min-width: 60rem) { .tl { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
+.prob { background: var(--surface-2); border-radius: 10px; padding: 0.8rem 0.9rem; font-size: 0.92rem; min-width: 0; }
+.prob .id { font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.prob p { margin: 0.35rem 0 0.7rem; }
+.ans { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.ans th, .ans td { text-align: left; padding: 0.25rem 0.4rem; border-top: 1px solid var(--rule); }
+.ans th { font: 500 0.7rem/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.ok { color: var(--on); } .no { color: var(--bad); }
+.kn { min-width: 0; display: grid; gap: 0.8rem; font-size: 0.9rem; }
+.kn h3 { margin: 0 0 0.3rem; font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--on); display: flex; gap: 0.5rem; align-items: baseline; }
+.kn h3 span { color: var(--muted); text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 0.85rem; }
+.kn ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; }
+.kn li { padding: 0.18rem 0.4rem; border-radius: 4px; overflow-wrap: anywhere; }
+.kn li.new { background: var(--new-bg); } .kn li.chg { background: var(--chg-bg); }
+.kn .none { color: var(--muted); font-style: italic; }
+.kn .rel { font-family: var(--font-mono); font-size: 0.8em; color: var(--muted); }
+.removed { color: var(--muted); text-decoration: line-through; }
+.note { font-size: 0.88rem; color: var(--muted); border-left: 2px solid var(--rule); padding-left: 0.7rem; max-width: 70ch; }
+.empty { padding: 3rem 1rem; text-align: center; color: var(--muted); }
+footer { padding-block: 0 3rem; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap">
+  <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--know)"/><path d="M9 9h13v3H13v3h8v3h-8v3h9v3H9z" fill="#fff"/></svg><span><span class="e">Evolve</span>MAS</span></a>
+  <nav aria-label="Pages">
+    <a href="./#loop">The loop</a><a href="./#try">Try it</a><a href="replay.html">Recorded runs</a><a href="longrun.html" aria-current="page">Long run</a><a href="./#paper">Paper</a>
+  </nav>
+  <a class="btn gh" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>GitHub</a>
+</div></header>
+<div class="wrap">
+<header>
+    <h1>100 problems, one team</h1>
+  <p class="lede" id="lede">The same three debaters solve GSM8K test problems 1–100 in order, once with EvolveMAS and once with it switched off. The charts compare the two runs; the timeline shows each agent's knowledge after every problem.</p>
+</header>
+
+<div class="stack" id="root"><div class="card empty">Loading the two runs…</div></div>
+
+<footer>Recorded with <code>bench/debate.py --episodes 100</code>. Same problems, same models and the same prompts in both runs; the only difference is whether the plug-in's memory and knowledge updates are on.</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var AG = ["agent_a", "agent_b", "agent_c"];
+  var NAME = { agent_a: "Agent A", agent_b: "Agent B", agent_c: "Agent C" };
+  var on, off, idx = 0, agent = "agent_c";
+
+  Promise.all(["runs/debate_long_on.json", "runs/debate_long_off.json"].map(function (u) {
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  })).then(function (res) {
+    on = res[0]; off = res[1];
+    if (!on || !off) { $("root").innerHTML = '<div class="card empty">The long-run recordings are not published yet.</div>'; return; }
+    build();
+  });
+
+  function pct(n, d) { return d ? Math.round(100 * n / d) : 0; }
+  function count(run, f) { return run.episodes.filter(f).length; }
+  function cum(run, f) { var c = 0; return run.episodes.map(function (e, i) { if (f(e)) c++; return c / (i + 1); }); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  function build() {
+    var n = Math.min(on.episodes.length, off.episodes.length);
+    var team = function (e) { return e.team_correct; };
+    var cFirst = function (e) { return e.answers.agent_c.round1_correct; };
+    var allFirst = function (e) { return AG.every(function (a) { return e.answers[a].round1_correct; }); };
+    var fixedC = function (e) { return !e.answers.agent_c.round1_correct && e.answers.agent_c.final_correct; };
+    var m = on.models || {};
+    var h = '';
+    h += '<div class="card"><div class="stats">' +
+      stat("Team answer correct", count(on, team), count(off, team), n) +
+      stat("Agent C's first answer correct", count(on, cFirst), count(off, cFirst), n) +
+      stat("All three first answers correct", count(on, allFirst), count(off, allFirst), n) +
+      stat("Agent C wrong first, fixed by debate", count(on, fixedC), count(off, fixedC), n) +
+      '</div><p class="note" style="margin-top:1rem">Models: ' + Object.keys(m).map(function (k) { return esc(k) + ' <code>' + esc(m[k]) + '</code>'; }).join(", ") +
+      '. One run of each condition, so differences of a few problems are within run-to-run noise.</p></div>';
+    h += '<div class="charts">' +
+      '<div class="card"><h2>Team accuracy so far</h2><p class="sub">Share of problems answered correctly by majority vote, up to each problem</p><svg class="chart" id="c1" viewBox="0 0 560 230"></svg>' + legend() + '</div>' +
+      '<div class="card"><h2>Agent C\'s first answers so far</h2><p class="sub">Share of problems where the fast agent was right before reading the others</p><svg class="chart" id="c2" viewBox="0 0 560 230"></svg>' + legend() + '</div>' +
+      '</div>';
+    h += '<div class="card"><div class="timeline-head"><div><h2>Knowledge over time</h2><p class="sub" style="margin:0">With EvolveMAS on. Drag to any problem to see what each agent knew after it.</p></div>' +
+      '<div class="picker" id="picker">' + AG.map(function (a) { return '<button type="button" data-a="' + a + '" aria-pressed="' + (a === agent) + '">' + NAME[a] + '</button>'; }).join("") + '</div></div>' +
+      '<div class="slider" style="margin-top:0.9rem"><button type="button" class="stepbtn" id="prev" aria-label="Previous problem">◀</button>' +
+      '<label for="pos" class="sub" style="margin:0">Problem</label><input type="range" id="pos" min="1" max="' + n + '" value="1"><output id="posout"></output>' +
+      '<button type="button" class="stepbtn" id="next" aria-label="Next problem">▶</button></div>' +
+      '<div class="changes"><p class="sub" style="margin:0.4rem 0 0.2rem">How much the selected agent\'s knowledge changed after each problem (red marks: Agent C\'s first answer was wrong)</p><svg id="chg" viewBox="0 0 560 48" preserveAspectRatio="none" role="img" aria-label="Knowledge changes per problem"></svg></div>' +
+      '<div class="tl"><div class="prob" id="prob"></div><div class="kn" id="know"></div></div></div>';
+    $("root").innerHTML = h;
+
+    line($("c1"), [cum(on, team), cum(off, team)], n);
+    line($("c2"), [cum(on, cFirst), cum(off, cFirst)], n);
+    $("pos").oninput = function () { idx = +this.value - 1; render(); };
+    $("prev").onclick = function () { idx = Math.max(0, idx - 1); $("pos").value = idx + 1; render(); };
+    $("next").onclick = function () { idx = Math.min(n - 1, idx + 1); $("pos").value = idx + 1; render(); };
+    document.querySelectorAll("#picker button").forEach(function (b) {
+      b.onclick = function () { agent = b.getAttribute("data-a"); document.querySelectorAll("#picker button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); render(); };
+    });
+    $("chg").addEventListener("click", function (e) {
+      var r = this.getBoundingClientRect(); idx = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left) / r.width * n))); $("pos").value = idx + 1; render();
+    });
+    render();
+  }
+
+  function stat(label, a, b, n) {
+    return '<div class="stat"><div class="lbl">' + label + '</div><div class="vals">' +
+      '<span class="v on">' + pct(a, n) + '%<small>on · ' + a + '/' + n + '</small></span>' +
+      '<span class="v off">' + pct(b, n) + '%<small>off · ' + b + '/' + n + '</small></span></div></div>';
+  }
+  function legend() { return '<div class="legend"><span><i style="background:var(--on)"></i>EvolveMAS on</span><span><i style="background:var(--off)"></i>EvolveMAS off</span></div>'; }
+
+  function line(svg, series, n) {
+    var W = 560, H = 230, L = 42, R = 16, T = 12, B = 30;
+    var all = series[0].concat(series[1]);
+    var mn = Math.min.apply(null, all.filter(function (_, i) { return i % n >= Math.min(5, n - 1); }));
+    var lo = Math.max(0, Math.min(0.8, Math.floor((mn - 0.02) * 10) / 10));
+    var step = 1 - lo <= 0.3 ? 0.05 : 1 - lo <= 0.6 ? 0.1 : 0.2;
+    var x = function (i) { return L + i * (W - L - R) / Math.max(1, n - 1); };
+    var y = function (v) { return T + (1 - (v - lo) / (1 - lo)) * (H - T - B); };
+    var g = [];
+    for (var v = lo; v <= 1.0001; v = Math.round((v + step) * 100) / 100) {
+      g.push('<line class="axis" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>');
+      g.push('<text class="tick" x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v * 100) + '%</text>');
+    }
+    [1, Math.round(n / 4), Math.round(n / 2), Math.round(3 * n / 4), n].forEach(function (k) {
+      g.push('<text class="tick" x="' + x(k - 1) + '" y="' + (H - 8) + '" text-anchor="middle">' + k + '</text>');
+    });
+    var labelY = {};
+    var lastOn = series[0][n - 1], lastOff = series[1][n - 1];
+    labelY[0] = Math.max(T + 10, y(lastOn) - 9); labelY[1] = Math.min(H - B - 4, y(lastOff) + 16);
+    if (Math.abs(labelY[1] - labelY[0]) < 13) labelY[1] = labelY[0] + 13;
+    [[1, "var(--off)"], [0, "var(--on)"]].forEach(function (p) {
+      var s = series[p[0]].slice(0, n);
+      g.push('<path d="' + s.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join(" ") + '" fill="none" stroke="' + p[1] + '" stroke-width="2.4" stroke-linejoin="round"/>');
+      var last = s[s.length - 1];
+      g.push('<circle cx="' + x(s.length - 1) + '" cy="' + y(last) + '" r="4" fill="' + p[1] + '"/>');
+      var ly = labelY[p[0]];
+      g.push('<text class="tick" x="' + (x(s.length - 1) - 8) + '" y="' + ly + '" text-anchor="end" style="fill:' + p[1] + '">' + (p[0] ? "off " : "on ") + Math.round(last * 100) + '%</text>');
+    });
+    svg.innerHTML = g.join("");
+  }
+
+  function know(i) { return i >= 0 ? on.episodes[i].knowledge[agent] : { strategies: [], partners: {} }; }
+  function diffCount(a, b) {
+    var oldS = {}; a.strategies.forEach(function (s) { oldS[s] = 1; });
+    var c = b.strategies.filter(function (s) { return !oldS[s]; }).length;
+    var newS = {}; b.strategies.forEach(function (s) { newS[s] = 1; });
+    c += a.strategies.filter(function (s) { return !newS[s]; }).length;
+    Object.keys(b.partners).forEach(function (k) { var o = a.partners[k], p = b.partners[k]; if (!o || o.tendency !== p.tendency || o.reliability !== p.reliability) c++; });
+    return c;
+  }
+
+  function render() {
+    var n = Math.min(on.episodes.length, off.episodes.length);
+    $("posout").textContent = (idx + 1) + " of " + n;
+    // changes strip
+    var W = 560, H = 48, bw = W / n, g = [], maxc = 1, cs = [];
+    for (var i = 0; i < n; i++) { var c = diffCount(know(i - 1), know(i)); cs.push(c); maxc = Math.max(maxc, c); }
+    cs.forEach(function (c, i) {
+      var h = c ? 4 + (H - 14) * c / maxc : 1.5;
+      g.push('<rect x="' + (i * bw + bw * 0.15) + '" y="' + (H - 6 - h) + '" width="' + (bw * 0.7) + '" height="' + h + '" fill="var(--on)" opacity="' + (i === idx ? 1 : 0.55) + '"/>');
+      if (!on.episodes[i].answers.agent_c.round1_correct) g.push('<rect x="' + (i * bw) + '" y="' + (H - 4) + '" width="' + bw + '" height="4" fill="var(--bad)"/>');
+    });
+    g.push('<rect x="' + (idx * bw) + '" y="0" width="' + bw + '" height="' + H + '" fill="none" stroke="var(--fg)" stroke-width="1.5"/>');
+    $("chg").innerHTML = g.join("");
+
+    // problem
+    var e = on.episodes[idx], eo = off.episodes[idx];
+    var row = function (lab, ep) {
+      return '<tr><td>' + lab + '</td>' + AG.map(function (a) {
+        var v = ep.answers[a];
+        return '<td><span class="' + (v.round1_correct ? "ok" : "no") + '">' + esc(v.round1) + '</span> → <span class="' + (v.final_correct ? "ok" : "no") + '">' + esc(v.final) + '</span></td>';
+      }).join("") + '<td class="' + (ep.team_correct ? "ok" : "no") + '">' + esc(ep.team_answer) + '</td></tr>';
+    };
+    $("prob").innerHTML = '<div class="id">' + esc(e.problem) + ' · answer key ' + esc(e.gold) + '</div>' +
+      '<table class="ans"><thead><tr><th></th>' + AG.map(function (a) { return '<th>' + NAME[a] + '</th>'; }).join("") + '<th>Team</th></tr></thead><tbody>' +
+      row("On", e) + row("Off", eo) + '</tbody></table>' +
+      '<p class="sub" style="margin:0.6rem 0 0">Each cell: first answer → answer after reading the others.</p>';
+
+    // knowledge
+    var k = know(idx), p = know(idx - 1);
+    var oldS = {}; p.strategies.forEach(function (s) { oldS[s] = 1; });
+    var newS = {}; k.strategies.forEach(function (s) { newS[s] = 1; });
+    var dropped = p.strategies.filter(function (s) { return !newS[s]; });
+    var hh = '<div><h3>Interaction strategies <span>' + k.strategies.length + ' after this problem</span></h3>' +
+      (k.strategies.length ? '<ul>' + k.strategies.map(function (s) { return '<li class="' + (oldS[s] ? "" : "new") + '">' + esc(s) + '</li>'; }).join("") +
+        dropped.map(function (s) { return '<li class="removed">' + esc(s) + '</li>'; }).join("") + '</ul>' : '<div class="none">none yet</div>') + '</div>';
+    var pk = Object.keys(k.partners);
+    hh += '<div><h3>Partner profiles <span>' + NAME[agent] + "'s view of the others</span></h3>" +
+      (pk.length ? '<ul>' + pk.map(function (name) {
+        var v = k.partners[name], o = p.partners[name];
+        var cls = !o ? "new" : (o.tendency !== v.tendency || o.reliability !== v.reliability) ? "chg" : "";
+        return '<li class="' + cls + '"><b>' + esc(NAME[name] || name) + '</b>: ' + esc(v.tendency) + ' <span class="rel">(' + esc(v.reliability) + ')</span></li>';
+      }).join("") + '</ul>' : '<div class="none">none yet</div>') + '</div>';
+    hh += '<p class="sub" style="margin:0">Green: added after this problem. Yellow: rewritten. Struck through: dropped. Memory at this point holds ' + k.episodic + ' episodic entries and ' + k.semantic + ' facts.</p>';
+    $("know").innerHTML = hh;
+  }
+})();
+</script>
+</body>
+</html>

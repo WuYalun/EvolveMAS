@@ -33,9 +33,12 @@ def main():
     ap.add_argument("--episodes", type=int, default=10)
     ap.add_argument("--out", default=str(ROOT / "docs/runs/debate.json"))
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--data", default=None, help="GSM8K jsonl (default: examples/data/gsm8k_test_first10.jsonl)")
+    ap.add_argument("--baseline", action="store_true", help="plug-in attached with online and evolve off")
+    ap.add_argument("--long-out", default=None, help="also write a compact per-problem summary (results + knowledge)")
     args = ap.parse_args()
 
-    problems = D.load_problems()
+    problems = D.load_problems(args.data) if args.data else D.load_problems()
     if args.dry_run:
         agent_llm = small_llm = mem_llm = ScriptedLLM(D.mock_respond_factory(problems))
     else:
@@ -58,7 +61,7 @@ def main():
         rec.agent(a, label=a.replace("agent_", "Agent ").title(),
                   role={"agent_a": "careful solver", "agent_b": "careful solver", "agent_c": "answers fast, skips steps"}[a])
     store = Path(tempfile.mkdtemp(prefix="debate_mem_"))
-    plugin = TracedEvolveMAS(store, mem_llm, rec)
+    plugin = TracedEvolveMAS(store, mem_llm, rec, online=not args.baseline, evolve=not args.baseline)
     for a, prof in D.AGENTS.items():
         plugin.register(a, profile=prof)
 
@@ -99,7 +102,30 @@ def main():
     tin = sum(u.get("input_tokens", 0) for u in usage.values())
     tout = sum(u.get("output_tokens", 0) for u in usage.values())
     check_and_save(rec, args.out, {"calls": calls, "input_tokens": tin, "output_tokens": tout, "by_model": usage})
+    if args.long_out:
+        write_long(rec.data, args.long_out, baseline=args.baseline)
     print("usage:", usage)
+
+
+def write_long(data, path, baseline):
+    """Compact view of a long run: each problem's result and every agent's knowledge after it."""
+    import json
+    eps = []
+    for ep in data["episodes"]:
+        ends = {e["agent"]: e["state"] for e in ep["events"] if e["t"] == "hook" and e["name"] == "end_episode"}
+        r = ep["result"]
+        eps.append({
+            "problem": r["problem"], "gold": r["gold"], "team_answer": r["team_answer"], "team_correct": r["team_correct"],
+            "answers": {a: {k: v[k] for k in ("round1", "final", "round1_correct", "final_correct")} for a, v in r["answers"].items()},
+            "knowledge": {a: {"strategies": s["strategies"], "partners": s["partners"],
+                              "episodic": len(s["episodic"]), "semantic": len(s["semantic"])} for a, s in ends.items()},
+        })
+    out = {k: data[k] for k in ("benchmark", "title", "source", "models", "agents", "recorded_at", "usage")}
+    out["condition"] = "EvolveMAS off (baseline)" if baseline else "EvolveMAS on"
+    out["episodes"] = eps
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"saved {path}")
 
 
 if __name__ == "__main__":

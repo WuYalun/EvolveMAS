@@ -8,35 +8,13 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231c8564%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="site.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
 /* Layout: benchmark tabs, then a replay console: stage (agents + data flow) left, inspector right; transport under the stage. */
-:root {
-  --bg: #f6f8fa; --surface: #ffffff; --surface-2: #eef2f6; --fg: #16202c; --muted: #5a6878; --rule: #d9e0e8;
-  --within: #1f5fd6; --cross: #1c8564; --coop: #17866a; --mixed: #d9701f; --adv: #d64545;
-  --private: #7a4fd0; --env: #8a6d1c; --new-bg: #e2f5ec; --chg-bg: #fff3d6;
-  --code-bg: #0f1722; --code-fg: #dfe7f1;
-  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
-    --within: #6d9dff; --cross: #4cc39b; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373;
-    --private: #b294ff; --env: #d9b65a; --new-bg: #173628; --chg-bg: #3a3017; --code-bg: #0a0f15;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
-  --within: #6d9dff; --cross: #4cc39b; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373;
-  --private: #b294ff; --env: #d9b65a; --new-bg: #173628; --chg-bg: #3a3017; --code-bg: #0a0f15;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-[hidden] { display: none !important; }
+:root { --within: var(--mem); --cross: var(--know); --private: #7a4fd0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --private: #b294ff; } }
+:root[data-theme="dark"] { --private: #b294ff; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 400 1rem/1.55 var(--font-body); padding-inline: 1rem; padding-block: 0; }
 a { color: var(--within); text-underline-offset: 0.18em; }
 button, select, input { font: inherit; color: inherit; }
@@ -44,7 +22,7 @@ button, select, input { font: inherit; color: inherit; }
 code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
 .wrap { max-width: 82rem; margin-inline: auto; }
 
-header { padding-block: 2rem 1.2rem; display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; align-items: end; justify-content: space-between; }
+.wrap > header { padding-block: 2rem 1.2rem; display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; align-items: end; justify-content: space-between; }
 .back { font: 500 0.8rem/1 var(--font-mono); color: var(--muted); text-decoration: none; }
 h1 { font: 800 clamp(1.8rem, 4vw, 2.6rem)/1.05 var(--font-display); margin: 0.5rem 0 0; letter-spacing: -0.01em; }
 h1 .evolve { color: var(--cross); }
@@ -139,11 +117,18 @@ footer { padding-block: 2rem 3rem; color: var(--muted); font-size: 0.85rem; }
 </style>
 </head>
 <body>
+<header class="nav"><div class="wrap">
+  <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--know)"/><path d="M9 9h13v3H13v3h8v3h-8v3h9v3H9z" fill="#fff"/></svg><span><span class="e">Evolve</span>MAS</span></a>
+  <nav aria-label="Pages">
+    <a href="./#loop">The loop</a><a href="./#try">Try it</a><a href="replay.html" aria-current="page">Recorded runs</a><a href="longrun.html">Long run</a><a href="./#paper">Paper</a>
+  </nav>
+  <a class="btn gh" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>GitHub</a>
+</div></header>
 <div class="wrap">
 <header>
   <div>
-    <a class="back" href="./">← EvolveMAS</a>
-    <h1>Benchmark replays</h1>
+        <h1>Benchmark replays</h1>
+    <p class="lede"><a href="longrun.html">See a 100-problem run →</a></p>
     <p class="lede">Recorded runs of the <code>evolvemas</code> plug-in on GSM8K multiagent debate and on one task from each of the paper's five benchmarks. Step through every message between agents, every memory update by each agent's MemoryAgent, and every knowledge update after an episode.</p>
   </div>
 </header>

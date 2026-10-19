@@ -1,0 +1,93 @@
+/* EvolveMAS site system.
+   Visual grammar: blue = within-episode memory (observe, context, MEMORY.md);
+   green = cross-episode knowledge (end_episode, KNOWLEDGE.md). Every page uses only these two
+   accents plus three setting colors for benchmark labels. */
+:root {
+  --bg: #f7f8f6; --surface: #ffffff; --surface-2: #eef1ee; --fg: #141b22; --muted: #5b6672; --rule: #dbe0dc;
+  --mem: #2257d6;  --mem-soft: #e4ecfc;      /* within episode */
+  --know: #17805e; --know-soft: #def3ea;     /* across episodes */
+  --env: #8a6a17; --bad: #b8432c; --new-bg: #e0f4ea; --chg-bg: #fdf2d3;
+  --coop: #17805e; --mixed: #c8661b; --adv: #c94343;
+  --code-bg: #10161d; --code-fg: #dfe6ee;
+  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1216; --surface: #141b21; --surface-2: #1a232b; --fg: #e3e9ee; --muted: #98a5b1; --rule: #26313a;
+    --mem: #79a2ff; --mem-soft: #1a2741; --know: #4fc79d; --know-soft: #14322a;
+    --env: #d7b45c; --bad: #f08a72; --new-bg: #163525; --chg-bg: #392f16;
+    --coop: #4fc79d; --mixed: #f0974f; --adv: #f07373; --code-bg: #090d11;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1216; --surface: #141b21; --surface-2: #1a232b; --fg: #e3e9ee; --muted: #98a5b1; --rule: #26313a;
+  --mem: #79a2ff; --mem-soft: #1a2741; --know: #4fc79d; --know-soft: #14322a;
+  --env: #d7b45c; --bad: #f08a72; --new-bg: #163525; --chg-bg: #392f16;
+  --coop: #4fc79d; --mixed: #f0974f; --adv: #f07373; --code-bg: #090d11;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-padding-top: 4.5rem; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 1.0625rem/1.6 var(--font-body); padding-inline: 1rem; padding-block: 0; }
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--mem); text-underline-offset: 0.18em; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--mem); outline-offset: 2px; border-radius: 4px; }
+code { font-family: var(--font-mono); font-size: 0.86em; }
+.wrap { max-width: 76rem; margin-inline: auto; }
+
+/* nav */
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); margin-inline: -1rem; padding-inline: 1rem; }
+.nav .wrap { display: flex; align-items: center; gap: 0.4rem 1.4rem; min-height: 3.4rem; flex-wrap: wrap; }
+.logo { font: 800 1.2rem/1 var(--font-display); text-decoration: none; color: var(--fg); letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 0.45rem; }
+.logo .e { color: var(--know); }
+.logo svg { width: 1.3rem; height: 1.3rem; }
+.nav nav { display: flex; gap: 0.2rem 1.1rem; flex-wrap: wrap; font-size: 0.92rem; }
+.nav nav a { color: var(--muted); text-decoration: none; padding-block: 0.3rem; }
+.nav nav a:hover, .nav nav a[aria-current="page"] { color: var(--fg); }
+.nav .gh { margin-left: auto; }
+
+/* type */
+.eyebrow { font: 500 0.74rem/1.2 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0 0 0.9rem; }
+h1, h2, h3 { text-wrap: balance; }
+h2 { font: 700 clamp(1.6rem, 3.4vw, 2.3rem)/1.12 var(--font-display); letter-spacing: -0.015em; margin: 0 0 0.9rem; }
+h3 { font: 700 1.15rem/1.25 var(--font-display); margin: 0 0 0.4rem; }
+p { margin: 0 0 1rem; }
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
+.mem { color: var(--mem); } .know { color: var(--know); }
+
+/* buttons */
+.btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.55rem 1rem; border-radius: 8px; border: 1px solid var(--fg); background: transparent; font: 600 0.95rem/1 var(--font-body); text-decoration: none; color: var(--fg); cursor: pointer; }
+.btn:hover { background: var(--fg); color: var(--bg); }
+.btn.solid { background: var(--fg); color: var(--bg); }
+.btn.solid:hover { opacity: 0.88; }
+.btn.pending { border-style: dashed; color: var(--muted); border-color: var(--muted); cursor: default; }
+.btn.pending:hover { background: transparent; color: var(--muted); }
+.btn svg { width: 1rem; height: 1rem; fill: currentColor; flex: none; }
+.install { display: inline-flex; align-items: center; gap: 0.6rem; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 0.5rem 0.55rem 0.5rem 0.85rem; font: 400 0.84rem/1.3 var(--font-mono); max-width: 100%; min-width: 0; }
+.install span { overflow-x: auto; white-space: nowrap; }
+.install button { border: 1px solid #3a4758; background: #182231; color: #dfe7f1; border-radius: 6px; padding: 0.3rem 0.55rem; font: 500 0.75rem/1 var(--font-mono); cursor: pointer; flex: none; }
+
+/* code */
+pre.code { background: var(--code-bg); color: var(--code-fg); border-radius: 10px; padding: 0.9rem 1rem; overflow-x: auto; margin: 0; font: 400 0.82rem/1.6 var(--font-mono); }
+pre.code .c { color: #7f8ea3; } pre.code .k { color: #8fb6ff; } pre.code .s { color: #8fd9b8; } pre.code .h { color: #ffd38a; }
+pre.code .hm { color: #8fb6ff; font-weight: 500; } pre.code .hk { color: #7fe0b6; font-weight: 500; }
+
+/* sections */
+.section { padding-block: 4rem; border-top: 1px solid var(--rule); }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; }
+.pill { display: inline-block; font: 500 0.7rem/1 var(--font-mono); padding: 0.25rem 0.45rem; border-radius: 4px; border: 1px solid currentColor; white-space: nowrap; }
+footer.site { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var(--muted); font-size: 0.88rem; display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; justify-content: space-between; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (max-width: 44rem) {
+  .nav .wrap { flex-wrap: nowrap; gap: 0.8rem; min-height: 3rem; }
+  .nav nav { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; min-width: 0; flex: 1; scrollbar-width: none; }
+  .nav nav::-webkit-scrollbar { display: none; }
+  .nav .gh { padding: 0.35rem 0.55rem; font-size: 0; gap: 0; }
+  .nav .gh svg { width: 1.05rem; height: 1.05rem; }
+}

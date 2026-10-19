@@ -27,7 +27,7 @@ SOFT = re.compile("|".join(_terms("BENCH_REVIEWLIST")) or r"(?!x)x", re.I)
 class RetryLLM:
     """Retries transient network failures so one dropped connection does not end a recording."""
 
-    def __init__(self, llm, tries: int = 6):
+    def __init__(self, llm, tries: int = 20):
         self.llm, self.tries = llm, tries
 
     @property
