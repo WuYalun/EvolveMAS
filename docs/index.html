@@ -277,7 +277,7 @@ plugin.<span class="hm">observe</span>(<span class="s">"agent_c"</span>, round_m
 <section class="section" id="speeds">
   <p class="eyebrow">Memory and knowledge</p>
   <h2>Two speeds of learning</h2>
-  <p class="lede"><span class="mem">Memory</span> is rebuilt inside each episode from what the agent saw. <span class="know">Knowledge</span> outlives the episode and is revised by each outcome. Here is Agent A's state across three consecutive problems of the recorded run.</p>
+  <p class="lede"><span class="mem">Memory</span> is updated during an episode from what the agent sees. When the next episode starts, working memory and facts marked as belonging to the last episode are cleared; past events and longer-lived facts stay, and a fact that is not seen again for a few episodes expires. <span class="know">Knowledge</span> outlives the episode and is revised by each outcome. Here is Agent A's state across three consecutive problems of the recorded run.</p>
   <div class="lanes card" id="lanes"><div style="padding:1rem;color:var(--muted)">Loading…</div></div>
 </section>
 
@@ -432,8 +432,10 @@ plugin = EvolveMAS(<span class="s">"runs/memory"</span>, AnthropicLLM())
     <span class="k">for</span> rnd <span class="k">in</span> range(<span class="s">2</span>):
         replies = {a.name: a.solve(problem, plugin.<span class="hm">context</span>(a.name))
                    <span class="k">for</span> a <span class="k">in</span> agents}
+        events = [{<span class="s">"speaker"</span>: name, <span class="s">"content"</span>: text}
+                  <span class="k">for</span> name, text <span class="k">in</span> replies.items()]
         <span class="k">for</span> a <span class="k">in</span> agents:
-            plugin.<span class="hm">observe</span>(a.name, list(replies.items()))
+            plugin.<span class="hm">observe</span>(a.name, events)
     result = check(replies, problem.answer)
     <span class="k">for</span> a <span class="k">in</span> agents: plugin.<span class="hk">end_episode</span>(a.name, result)</pre>
   </div>
@@ -490,9 +492,13 @@ var ARXIV_ID = "";
   });
 
   /* ---------- recorded episode: hero, the loop, the lanes ---------- */
-  var EP = 5;   // gsm8k-test-5: Agent C's first answer was wrong
+  var EP = 5;   // replaced below by the first problem where Agent C's first answer was wrong
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   fetch("runs/debate.json").then(function (r) { return r.json(); }).then(function (t) {
+    for (var i = 1; i < t.episodes.length - 1; i++) {
+      var r0 = t.episodes[i].result;
+      if (r0 && r0.answers && !r0.answers.agent_c.round1_correct) { EP = i; break; }
+    }
     var ep = t.episodes[EP];
     document.getElementById("hero-prob").textContent = ep.setup.problem;
     var player = EvolveFlow.mount(document.getElementById("hero-stage"), document.getElementById("hero-caption"), t, EP, { focus: "agent_a" });
@@ -522,7 +528,7 @@ var ARXIV_ID = "";
       h += '<div class="cell lane-k">' + (k ? '<div class="carry">↳ carried from problem ' + i + ', then revised</div>' : '<div class="carry">after this problem</div>') +
         '<ul><li><b>Agent C:</b> ' + esc(p ? p.reliability : "no profile yet") + '</li><li>' + s.strategies.length + ' strategies, e.g. “' + esc((s.strategies[s.strategies.length - 1] || "none")) + '”</li></ul></div>';
     });
-    h += '<div class="rowh lane-m">Memory<small>Agent A · rebuilt each problem</small></div>';
+    h += '<div class="rowh lane-m">Memory<small>Agent A · working memory resets each problem</small></div>';
     cols.forEach(function (i) {
       var s = lastObs(i, "agent_a");
       var epi = s.episodic.filter(function (e) { return e.episode === i; });

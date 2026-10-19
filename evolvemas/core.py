@@ -229,6 +229,10 @@ def _as_list(x: Any) -> List[Any]:
 def _normalize(e: Event, episode: int, turn: int) -> Dict[str, Any]:
     if isinstance(e, str):
         e = {"speaker": "env", "content": e}
+    elif isinstance(e, (tuple, list)) and len(e) == 2:     # (speaker, content)
+        e = {"speaker": str(e[0]), "content": str(e[1])}
+    elif not isinstance(e, dict):
+        e = {"speaker": "env", "content": str(e)}
     return {"episode": episode, "turn": turn, "speaker": e.get("speaker", "env"), "content": e.get("content", "")}
 
 

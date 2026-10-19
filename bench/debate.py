@@ -56,7 +56,7 @@ def main():
 
     rec = Recorder(
         "debate", "Multiagent debate · GSM8K",
-        source={"dataset": "GSM8K test set (openai/gsm8k), problems 0-9 in order",
+        source={"dataset": f"GSM8K test set (openai/gsm8k), problems 0-{args.episodes - 1} in order",
                 "protocol": "Du et al., ICML 2024: 3 agents, 2 rounds (answer, then update after reading the others), majority vote",
                 "description": "Three agents solve a grade-school math word problem, read each other's solutions, update their answers, and vote. The answer is checked against the GSM8K answer key.",
                 "notes": "The team is heterogeneous by our choice for the demo: agent_c runs a smaller model and is told to answer quickly without writing out steps."},

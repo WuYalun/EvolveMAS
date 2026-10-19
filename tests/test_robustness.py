@@ -165,3 +165,18 @@ def test_persistent_facts_expire_when_not_seen_again(tmp_path):
         alive = "old_fact" in p.state("a").semantic
         assert alive == (ep <= 2), (ep, alive)       # kept for 2 episodes after last seen, then dropped
         p.end_episode("a", {"ok": True})
+
+
+def test_observe_accepts_speaker_content_pairs(tmp_path):
+    import json as _json
+    from evolvemas import EvolveMAS, ScriptedLLM
+    seen = []
+
+    def respond(system, user):
+        seen.append(user)
+        return _json.dumps({"episodic": [], "semantic": [], "working": ""})
+
+    p = EvolveMAS(tmp_path, ScriptedLLM(respond))
+    p.register("a")
+    p.observe("a", [("b", "I offer $40"), {"speaker": "c", "content": "no"}, "a note"])
+    assert "b: I offer $40" in seen[-1] and "c: no" in seen[-1] and "env: a note" in seen[-1]

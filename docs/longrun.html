@@ -140,11 +140,13 @@ footer.site { margin-top: 0; }
     var ks = chain._ckpts, agents = Object.keys(chain.knowledge[ks[ks.length - 1]] || {});
     var h = '';
     var mine = cases.filter(function (c) { return c.setting === chain.id; });
-    h += '<div class="section-h"><h2>Cases</h2><span class="sub" style="margin:0">' + mine.length + ' from the records</span></div>';
-    h += mine.length ? '<div class="cases">' + mine.map(caseCard).join("") + '</div>' : '<div class="card empty">The records for this setting have no case that is clear enough to show. The knowledge itself is below.</div>';
+    if (mine.length) {
+      h += '<div class="section-h"><h2>Cases</h2><span class="sub" style="margin:0">' + mine.length + ' from the records</span></div>';
+      h += '<div class="cases">' + mine.map(caseCard).join("") + '</div>';
+    }
     if (mine.length && casesNote) h += '<p class="note">' + esc(casesNote) + '</p>';
     if (chain.note) h += '<p class="note">' + esc(chain.note) + '</p>';
-    h += '<div class="section-h" style="margin-top:1rem"><h2>Everything an agent knew</h2></div>';
+    h += '<div class="section-h"' + (mine.length ? ' style="margin-top:1rem"' : '') + '><h2>Everything an agent knew</h2></div>';
     h += '<div class="card"><div class="ctl"><div><h2>Knowledge at a checkpoint</h2><p class="sub" style="margin:0">Green: new since the previous checkpoint.</p></div>' +
       '<div class="picker" id="picker">' + agents.map(function (a) { return '<button type="button" data-a="' + esc(a) + '" aria-pressed="' + (a === agent) + '">' + esc(label(a)) + '</button>'; }).join("") + '</div></div>' +
       '<div class="slider" style="margin-top:0.9rem"><label for="pos" class="sub" style="margin:0">After episode</label><input type="range" id="pos" min="0" max="' + (ks.length - 1) + '" value="' + idx + '"><output id="posout"></output></div>' +
@@ -163,8 +165,10 @@ footer.site { margin-top: 0; }
       (lf.what_happened ? '<p>' + esc(lf.what_happened) + '</p>' : '') +
       '<div class="quote">' + (lf.excerpt || []).map(function (x) { return (x.speaker ? '<b>' + esc(x.speaker) + ':</b> ' : '') + esc(x.text); }).join("\n\n") + '</div>' +
       (lf.source ? '<span class="src">' + esc(lf.source) + '</span>' : '') + '</div>';
-    var learned = '<div class="step learned"><span class="lbl">' + kindName + ' it distilled' + (k.first_seen_checkpoint != null ? " · first in the snapshot after episode " + k.first_seen_checkpoint : "") + '</span>' +
-      '<div class="quote">' + esc(k.text) + '</div>' + (k.source ? '<span class="src">' + esc(k.source) + '</span>' : '') + '</div>';
+    var learned = '<div class="step learned"><span class="lbl">' + kindName + ' it distilled' + (k.first_seen_checkpoint != null ? " · as saved in checkpoint " + k.first_seen_checkpoint : "") + '</span>' +
+      '<div class="quote">' + esc(k.text) + '</div>' +
+      (k.first_seen_checkpoint != null && c.setting !== "werewolf_wolf" && c.setting !== "werewolf_village" ? '<p class="src" style="font-family:var(--font-body);font-size:0.78rem">Snapshots were saved every 10 episodes, so this is when the entry was saved, not when it formed. It can be in use before this checkpoint.</p>' : '') +
+      (k.source ? '<span class="src">' + esc(k.source) + '</span>' : '') + '</div>';
     var used = u ? '<div class="step used"><span class="lbl">Used again · training episode ' + esc(u.episode) + ' <span class="pill ' + (u.outcome === "correct" || u.outcome === "passed" ? "ok" : "no") + '">' + esc(u.outcome) + '</span></span>' +
       '<p>The agent named <code>' + esc((u.skill_invoked || []).join(", ")) + '</code> as knowledge it used.</p>' +
       '<div class="quote">' + esc(u.excerpt) + '</div>' + (u.source ? '<span class="src">' + esc(u.source) + '</span>' : '') + '</div>' : '';
