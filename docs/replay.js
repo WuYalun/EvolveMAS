@@ -2,6 +2,7 @@
 (function () {
   "use strict";
   var BENCHES = [
+    { id: "debate", name: "GSM8K debate", setting: "cooperative" },
     { id: "bbh", name: "BBH", setting: "cooperative" },
     { id: "humaneval", name: "HumanEval", setting: "cooperative" },
     { id: "sotopia", name: "SOTOPIA", setting: "mixed-motive" },
@@ -179,7 +180,7 @@
   }
   function envLabel() {
     var b = cur.bench.id;
-    return { bbh: "question · answer key", humaneval: "tests", sotopia: "scenario · judge", deliberation: "game · scores", werewolf: "night · votes" }[b] || "";
+    return { debate: "problem · answer key", bbh: "question · answer key", humaneval: "tests", sotopia: "scenario · judge", deliberation: "game · scores", werewolf: "night · votes" }[b] || "";
   }
   function markSelected() {
     cur.trace.agents.forEach(function (a) { var n = $("N-" + a.id); if (n) n.classList.toggle("selected", a.id === selected); });

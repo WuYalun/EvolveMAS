@@ -36,7 +36,14 @@ for episode in episodes:
 
 `observe` takes strings or `{"speaker": ..., "content": ...}` dicts. Only pass what that agent actually saw: memories are isolated per agent, and in hidden-information games the host decides visibility.
 
-A runnable example is in `examples/negotiation.py`:
+`examples/debate.py` runs multiagent debate on GSM8K (Du et al., ICML 2024) with all three debaters attached; it is the task behind the live demo on the website:
+
+```bash
+python examples/debate.py --backend mock --episodes 5          # offline, scripted, no API key
+python examples/debate.py --backend openai --episodes 10       # real models
+```
+
+A smaller two-agent example is in `examples/negotiation.py`:
 
 ```bash
 python examples/negotiation.py --backend mock --episodes 3     # offline, scripted, no API key
@@ -112,7 +119,7 @@ The site in `docs/` runs this package in the browser with Pyodide. `scripts/buil
 
 ## Benchmark replays
 
-`docs/replay.html` replays recorded runs of this plug-in on one task from each benchmark in the paper: BBH, HumanEval, SOTOPIA, LLM-Deliberation and Werewolf. Each host script in `bench/` runs the benchmark with every agent attached to `EvolveMAS`, and `bench/recorder.py` writes every message, every hook call (with the MemoryAgent's input and output) and every result to `docs/runs/<benchmark>.json`.
+`docs/replay.html` replays recorded runs of this plug-in on GSM8K multiagent debate and on one task from each benchmark in the paper: BBH, HumanEval, SOTOPIA, LLM-Deliberation and Werewolf. Each host script in `bench/` runs the benchmark with every agent attached to `EvolveMAS`, and `bench/recorder.py` writes every message, every hook call (with the MemoryAgent's input and output) and every result to `docs/runs/<benchmark>.json`.
 
 ```bash
 export OPEN_AI_KEY=...                        # agents: gpt-4.1-mini, MemoryAgent: gpt-4o-mini
@@ -120,5 +127,5 @@ python bench/sotopia.py --episodes 3          # writes docs/runs/sotopia.json
 python bench/werewolf.py --dry-run            # scripted backend, no API calls
 ```
 
-These are demonstration runs on real benchmark tasks, not the runs reported in the paper. All five recordings together cost about US$0.30.
+These are demonstration runs on real benchmark tasks, not the runs reported in the paper. All six recordings together cost about US$0.35.
 

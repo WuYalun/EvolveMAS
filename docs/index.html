@@ -115,8 +115,19 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .ep-h::after { content: ""; height: 1px; background: var(--rule); flex: 1; }
 .msg { display: grid; grid-template-columns: 4rem minmax(0, 1fr); gap: 0.6rem; font-size: 0.95rem; line-height: 1.45; }
 .msg .who { font: 600 0.8rem/1.6 var(--font-mono); }
-.msg.Lena .who { color: var(--lena); }
-.msg.Marco .who { color: var(--marco); }
+.msg.agent_a .who { color: var(--within); }
+.msg.agent_b .who { color: var(--lena); }
+.msg.agent_c .who { color: var(--marco); }
+.msg .rnd { display: block; font: 400 0.7rem/1.2 var(--font-mono); color: var(--muted); }
+.msg .txt { display: block; max-height: 7.5em; overflow-y: auto; white-space: pre-wrap; }
+.problem { background: var(--surface-2); border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.92rem; }
+.problem b { font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 0.3rem; }
+.tag.ans { color: var(--fg); }
+.tag.ok { color: var(--cross); }
+.tag.bad { color: var(--warn); }
+.agentpick { display: flex; gap: 0.3rem; flex-wrap: wrap; }
+.agentpick button { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 0.2rem 0.65rem; cursor: pointer; font-size: 0.82rem; }
+.agentpick button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .tag { display: inline-block; font: 500 0.75rem/1 var(--font-mono); padding: 0.22rem 0.4rem; border-radius: 4px; margin-left: 0.3rem; border: 1px solid currentColor; white-space: nowrap; }
 .tag.offer { color: var(--muted); }
 .tag.accept { color: var(--cross); }
@@ -137,7 +148,7 @@ code { font-family: var(--font-mono); font-size: 0.88em; }
 .hooks-log { display: flex; flex-direction: column; gap: 0.25rem; height: 7.2rem; overflow-y: auto; font: 400 0.78rem/1.5 var(--font-mono); }
 .hooks-log div { display: flex; gap: 0.6rem; }
 .hooks-log .n { color: var(--muted); width: 2.4rem; flex: none; text-align: right; font-variant-numeric: tabular-nums; }
-.hooks-log .hk { font-weight: 500; }
+.hooks-log .hk { font-weight: 500; flex: none; }
 .hk.context, .hk.observe { color: var(--within); }
 .hk.end_episode { color: var(--cross); }
 .hk.begin_episode { color: var(--muted); }
@@ -202,8 +213,8 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
 <div id="demo" class="demo" role="region" aria-label="Interactive demo">
   <div class="demo-head">
     <div class="demo-title">
-      <b>Lena sells an antique table to Marco</b>
-      <span>Lena runs with EvolveMAS. Marco does not. Same buyer every episode. This is a made-up example scenario, not a case from the paper's benchmarks.</span>
+      <b>Three agents debate a GSM8K math problem</b>
+      <span>Multiagent debate (Du et al., ICML 2024) on GSM8K test problems, checked against the answer key. All three agents run with EvolveMAS. Agent C answers fast and skips steps.</span>
     </div>
     <div class="controls">
       <div class="ctl-group"><span class="seg-label">Agents</span>
@@ -248,7 +259,7 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
     <label for="baseurl">Base URL (optional)
       <input id="baseurl" autocomplete="off" placeholder="https://api.anthropic.com">
     </label>
-    <p class="note">Your browser calls the provider directly. The key is kept in this tab's memory, is never stored, and is never sent anywhere else. One episode is about 10–20 model calls.</p>
+    <p class="note">Your browser calls the provider directly. The key is kept in this tab's memory, is never stored, and is never sent anywhere else. One problem is about 15 model calls: 6 answers, 6 memory updates and 3 knowledge updates.</p>
   </div>
 
   <div class="status" aria-live="polite">
@@ -263,7 +274,11 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
       <div class="convo" id="convo"><p class="placeholder">The first episode starts as soon as the runtime loads.</p></div>
     </div>
     <div class="pane">
-      <div class="pane-h"><h3>Lena's memory</h3><small>files the plug-in writes for her</small></div>
+      <div class="pane-h"><h3>Memory</h3><div class="agentpick" id="agentpick" role="group" aria-label="Agent">
+        <button type="button" data-agent="agent_a" aria-pressed="false">Agent A</button>
+        <button type="button" data-agent="agent_b" aria-pressed="false">Agent B</button>
+        <button type="button" data-agent="agent_c" aria-pressed="true">Agent C</button>
+      </div></div>
       <div class="tabs" role="tablist" aria-label="Memory files">
         <button type="button" role="tab" aria-selected="true" data-tab="context">context()</button>
         <button type="button" role="tab" aria-selected="false" data-tab="memory_md">MEMORY.md</button>
@@ -277,13 +292,13 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
 
   <div class="outcome-row">
     <div class="chart">
-      <div class="pane-h" style="margin-bottom:0.5rem"><h3>Lena's profit per episode</h3><small>price above her private floor of $40</small></div>
-      <svg id="chart" viewBox="0 0 560 210" role="img" aria-label="Seller profit per episode, EvolveMAS on versus off"></svg>
+      <div class="pane-h" style="margin-bottom:0.5rem"><h3>Right first answers per problem</h3><small>out of 3 agents, before they read each other</small></div>
+      <svg id="chart" viewBox="0 0 560 210" role="img" aria-label="Number of agents whose first answer was right, EvolveMAS on versus off"></svg>
       <div class="legend"><span><i style="background:var(--cross)"></i>EvolveMAS on</span><span><i style="background:var(--muted)"></i>EvolveMAS off</span></div>
     </div>
     <div class="explain" id="explain">
-      <p><b>What to watch.</b> After each turn, <code>observe</code> sends the new messages to Lena's MemoryAgent, which updates <code>MEMORY.md</code>. When the episode is scored, <code>end_episode</code> distills the outcome into <code>KNOWLEDGE.md</code>. Before every reply, <code>context</code> gives Lena a compact view of both. Switch EvolveMAS off and run again to see the baseline.</p>
-      <p class="honest" id="honest-sim"><b>Simulated mode:</b> the table, prices and characters are invented for this demo. The plug-in is the real Python package running in your browser, but Lena, Marco and the MemoryAgent are scripted rules, so the numbers only show the mechanics. Lena's script does read the knowledge the plug-in writes, which is why her opening price moves. Use <b>Live model</b> to run real agents with your own key.</p>
+      <p><b>What to watch.</b> After each round, <code>observe</code> gives every agent's MemoryAgent the three solutions, and it updates that agent's <code>MEMORY.md</code>. When the answer is checked, <code>end_episode</code> distills the result into each agent's <code>KNOWLEDGE.md</code>: strategies for itself and a profile of each partner. Before every answer, <code>context</code> hands the agent both. Switch EvolveMAS off and run again to compare.</p>
+      <p class="honest" id="honest-sim"><b>Simulated mode:</b> the problems and the answer key are real GSM8K, and the plug-in is the real Python package running in your browser, but the three agents and the MemoryAgent are scripted rules, so the numbers only show the mechanics. Agent C's script reads the knowledge the plug-in writes for it, which is why its first answers change. Use <b>Live model</b> to run real agents with your own key, or see a <a href="replay.html#debate">recorded run with real models</a>.</p>
     </div>
   </div>
 </div>
@@ -293,12 +308,12 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
   <p class="sec-label">On real benchmarks</p>
   <div class="split">
     <div>
-      <h2>Watch it on the paper's five benchmarks</h2>
-      <p>We ran the plug-in on one task from each benchmark in the paper, with every agent attached, and recorded everything: who said what to whom, what each MemoryAgent read and wrote, and how knowledge changed after each episode. Step through the recordings to follow the data flow.</p>
+      <h2>Watch it on recognized multi-agent tasks</h2>
+      <p>We ran the plug-in on GSM8K multiagent debate and on one task from each of the paper's five benchmarks, with every agent attached, and recorded everything: who said what to whom, what each MemoryAgent read and wrote, and how knowledge changed after each episode. Step through the recordings to follow the data flow.</p>
       <a class="btn" href="replay.html">Open the replays</a>
     </div>
     <div class="hooks">
-      <div class="hook"><code style="color:var(--coop)">BBH · HumanEval</code><span>Cooperative: agents solve a reasoning question together; a planner, developer and tester write and test code.</span></div>
+      <div class="hook"><code style="color:var(--coop)">GSM8K debate · BBH · HumanEval</code><span>Cooperative: agents debate a math problem or a reasoning question; a planner, developer and tester write and test code.</span></div>
       <div class="hook"><code style="color:var(--mixed)">SOTOPIA · LLM-Deliberation</code><span>Mixed-motive: a buyer and seller bargain; six parties negotiate a multi-issue deal.</span></div>
       <div class="hook"><code style="color:var(--adv)">Werewolf</code><span>Adversarial: hidden roles, private night actions, public accusations and a vote.</span></div>
     </div>
@@ -322,16 +337,18 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
 <pre class="code"><span class="k">from</span> evolvemas <span class="k">import</span> EvolveMAS, AnthropicLLM
 
 plugin = EvolveMAS(<span class="s">"runs/memory"</span>, AnthropicLLM())
-plugin.register(<span class="s">"Lena"</span>, profile=<span class="s">"seller"</span>)
+<span class="k">for</span> a <span class="k">in</span> agents:
+    plugin.register(a.name, profile=a.profile)
 
-<span class="k">for</span> episode <span class="k">in</span> episodes:
-    plugin.begin_episode(<span class="s">"Lena"</span>)
-    <span class="k">while not</span> episode.done:
-        memory = plugin.<span class="h">context</span>(<span class="s">"Lena"</span>)
-        reply = lena.act(prompt + memory)
-        seen = episode.step(reply)
-        plugin.<span class="h">observe</span>(<span class="s">"Lena"</span>, seen)
-    plugin.<span class="h">end_episode</span>(<span class="s">"Lena"</span>, episode.score())</pre>
+<span class="k">for</span> problem <span class="k">in</span> problems:
+    <span class="k">for</span> a <span class="k">in</span> agents: plugin.begin_episode(a.name)
+    <span class="k">for</span> rnd <span class="k">in</span> range(2):
+        replies = {a.name: a.solve(problem, plugin.<span class="h">context</span>(a.name))
+                   <span class="k">for</span> a <span class="k">in</span> agents}
+        <span class="k">for</span> a <span class="k">in</span> agents:
+            plugin.<span class="h">observe</span>(a.name, list(replies.items()))
+    result = check(replies, problem.answer)
+    <span class="k">for</span> a <span class="k">in</span> agents: plugin.<span class="h">end_episode</span>(a.name, result)</pre>
   </div>
 </section>
 
@@ -400,7 +417,7 @@ var ARXIV_ID = "";   // e.g. "2610.xxxxx"
   var $ = function (id) { return document.getElementById(id); };
   var state = {
     ready: false, busy: false, mode: "sim", evolve: true,
-    tab: "context", files: { context: "", memory_md: "", knowledge_md: "" }, prev: { context: "", memory_md: "", knowledge_md: "" },
+    tab: "context", agent: "agent_c", files: {}, prev: {},
     hookN: 0, episode: -1,
     series: { on: [], off: [] }, sessionKey: null
   };
@@ -439,34 +456,47 @@ var ARXIV_ID = "";   // e.g. "2610.xxxxx"
         break;
       case "fatal": showError("The demo runtime failed to load: " + ev.msg); break;
       case "session":
-        state.files = { context: "", memory_md: ev.memory_md, knowledge_md: ev.knowledge_md };
-        state.prev = { context: "", memory_md: ev.memory_md, knowledge_md: ev.knowledge_md };
+        state.files = {}; state.prev = {};
+        ev.agents.forEach(function (a) {
+          var f = ev.files[a];
+          state.files[a] = { context: "", memory_md: f.memory_md, knowledge_md: f.knowledge_md };
+          state.prev[a] = { context: "", memory_md: f.memory_md, knowledge_md: f.knowledge_md };
+        });
         renderMem(); break;
+      case "problem":
+        append('<div class="problem"><b>' + esc(ev.id) + '</b>' + esc(ev.question) + '</div>');
+        break;
       case "episode":
         state.episode = ev.ep;
-        $("ep-label").textContent = "Episode " + (ev.ep + 1) + (state.evolve ? " · EvolveMAS on" : " · EvolveMAS off");
+        $("ep-label").textContent = "Problem " + (ev.ep + 1) + (state.evolve ? " · EvolveMAS on" : " · EvolveMAS off");
         clearPlaceholder();
-        append('<div class="ep-h">Episode ' + (ev.ep + 1) + '</div>');
+        append('<div class="ep-h">Problem ' + (ev.ep + 1) + '</div>');
         break;
       case "say":
-        append('<div class="msg ' + ev.who + '"><span class="who">' + ev.who + '</span><span>' + fmtMsg(ev.text) + '</span></div>');
+        append('<div class="msg ' + ev.who + '"><span class="who">' + agentName(ev.who) + '<span class="rnd">round ' + ev.round + '</span></span><span><span class="txt">' + fmtMsg(ev.text) + '</span>' +
+               (ev.answer != null ? '<span class="tag ans" data-ans="' + esc(ev.answer) + '">= ' + esc(ev.answer) + '</span>' : '') + '</span></div>');
         break;
       case "hook":
         logHook(ev);
-        ["context", "memory_md", "knowledge_md"].forEach(function (k) {
-          if (typeof ev[k] === "string") { state.prev[k] = state.files[k]; state.files[k] = ev[k]; }
+        var F = state.files[ev.agent], P = state.prev[ev.agent];
+        if (F) ["context", "memory_md", "knowledge_md"].forEach(function (k) {
+          if (typeof ev[k] === "string") { P[k] = F[k]; F[k] = ev[k]; }
         });
-        if (ev.name === "context") setTab("context", true);
-        else if (ev.name === "observe") setTab("memory_md", true);
-        else if (ev.name === "end_episode") setTab("knowledge_md", true);
-        else renderMem();
+        if (ev.agent === state.agent) {
+          if (ev.name === "context") setTab("context", true);
+          else if (ev.name === "observe") setTab("memory_md", true);
+          else if (ev.name === "end_episode") setTab("knowledge_md", true);
+          else renderMem();
+        }
         break;
       case "result":
         var r = ev.result;
-        var txt = r.deal != null ? 'Deal at <b>$' + r.deal + '</b> · Lena\'s profit <b>$' + r.seller_profit + '</b>'
-                                 : 'No deal · ' + esc(r.note || "") + ' · profit <b>$0</b>';
-        append('<div class="outcome">' + txt + '</div>');
-        var s = state.series[state.evolve ? "on" : "off"]; s.push(r.seller_profit); drawChart();
+        var firsts = Object.keys(r.answers).map(function (a) {
+          var v = r.answers[a]; return agentName(a) + ' <span class="tag ' + (v.round1_correct ? "ok" : "bad") + '">' + esc(v.round1) + (v.round1_correct ? " ✓" : " ✗") + '</span>';
+        }).join(" ");
+        append('<div class="outcome">Team answer <b>' + esc(r.team_answer) + '</b> · answer key <b>' + esc(r.gold) + '</b> ' +
+               '<span class="tag ' + (r.team_correct ? "ok" : "bad") + '">' + (r.team_correct ? "correct" : "wrong") + '</span><br>First answers: ' + firsts + '</div>');
+        var s = state.series[state.evolve ? "on" : "off"]; s.push(r.first_round_correct); drawChart();
         break;
       case "usage":
         var u = ev.usage;
@@ -539,15 +569,24 @@ var ARXIV_ID = "";   // e.g. "2610.xxxxx"
 
   /* ---------------- rendering ---------------- */
   document.querySelectorAll(".tabs button").forEach(function (b) { b.onclick = function () { setTab(b.getAttribute("data-tab"), false); }; });
+  document.querySelectorAll("#agentpick button").forEach(function (b) {
+    b.onclick = function () {
+      state.agent = b.getAttribute("data-agent");
+      document.querySelectorAll("#agentpick button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      renderMem();
+    };
+  });
+  function agentName(a) { return { agent_a: "Agent A", agent_b: "Agent B", agent_c: "Agent C" }[a] || a; }
   function setTab(t, fromEvent) {
     state.tab = t;
     document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-tab") === t)); });
     renderMem(fromEvent);
   }
   function renderMem() {
-    var cur = state.files[state.tab] || "", prev = state.prev[state.tab] || "";
+    var F = state.files[state.agent] || {}, P = state.prev[state.agent] || {};
+    var cur = F[state.tab] || "", prev = P[state.tab] || "";
     if (!cur.trim()) {
-      var msg = state.tab === "context" ? "Empty: Lena has no memory or knowledge to inject yet." : "Nothing written yet.";
+      var msg = state.tab === "context" ? "Empty: " + agentName(state.agent) + " has no memory or knowledge to inject yet." : "Nothing written yet.";
       if (!state.evolve) msg = "EvolveMAS is off: the plug-in records the trajectory but writes no memory or knowledge.";
       $("memview").innerHTML = '<span class="empty">' + msg + '</span>'; return;
     }
@@ -559,37 +598,35 @@ var ARXIV_ID = "";   // e.g. "2610.xxxxx"
   }
   function logHook(ev) {
     state.hookN++;
-    var detail = { begin_episode: "working memory reset", context: "inject memory into Lena's prompt",
-                   observe: "MemoryAgent updates MEMORY.md", end_episode: "distill outcome into KNOWLEDGE.md" }[ev.name];
+    var who = agentName(ev.agent);
+    var detail = { begin_episode: "working memory reset", context: "inject memory into " + who + "'s prompt",
+                   observe: who + "'s MemoryAgent updates MEMORY.md", end_episode: "distill result into " + who + "'s KNOWLEDGE.md" }[ev.name];
     if (!state.evolve && (ev.name === "observe" || ev.name === "end_episode")) detail = "recorded only (EvolveMAS off)";
     var row = document.createElement("div");
-    row.innerHTML = '<span class="n">' + state.hookN + '</span><span class="hk ' + ev.name + '">' + ev.name + '()</span><span class="d">' + detail + '</span>';
+    row.innerHTML = '<span class="n">' + state.hookN + '</span><span class="hk ' + ev.name + '">' + ev.name + '(' + (ev.agent || "").replace("agent_", "") + ')</span><span class="d">' + esc(detail) + '</span>';
     var log = $("hooks-log"); log.appendChild(row); log.scrollTop = log.scrollHeight;
   }
   function clearPlaceholder() { var p = $("convo").querySelector(".placeholder"); if (p) p.remove(); }
   function append(html) { var c = $("convo"); c.insertAdjacentHTML("beforeend", html); c.scrollTop = c.scrollHeight; }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function fmtMsg(t) {
-    return esc(t)
-      .replace(/OFFER\s*\$\s*(\d+(?:\.\d+)?)/gi, '<span class="tag offer">OFFER $$$1</span>')
-      .replace(/ACCEPT\s*\$\s*(\d+(?:\.\d+)?)/gi, '<span class="tag accept">ACCEPT $$$1</span>')
-      .replace(/WALK\s+AWAY/gi, '<span class="tag walk">WALK AWAY</span>');
+    return esc(t).replace(/\\boxed\{([^}]*)\}/g, '<b>$1</b>');
   }
   function showError(m) { $("st-err").textContent = m; }
 
   function drawChart() {
     var W = 560, H = 210, L = 40, R = 14, T = 12, B = 34;
     var n = Math.max(6, state.series.on.length, state.series.off.length);
-    var ymax = 15;
+    var ymax = 3;
     var x = function (i) { return L + (n === 1 ? 0 : i * (W - L - R) / (n - 1)); };
     var y = function (v) { return T + (1 - v / ymax) * (H - T - B); };
     var g = [];
-    [0, 5, 10, 15].forEach(function (v) {
+    [0, 1, 2, 3].forEach(function (v) {
       g.push('<line class="axis" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>');
-      g.push('<text class="tick" x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">$' + v + '</text>');
+      g.push('<text class="tick" x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + v + '</text>');
     });
     for (var i = 0; i < n; i++) g.push('<text class="tick" x="' + x(i) + '" y="' + (H - B + 18) + '" text-anchor="middle">' + (i + 1) + '</text>');
-    g.push('<text class="lab" x="' + ((L + W - R) / 2) + '" y="' + (H - 2) + '" text-anchor="middle">episode</text>');
+    g.push('<text class="lab" x="' + ((L + W - R) / 2) + '" y="' + (H - 2) + '" text-anchor="middle">problem</text>');
     [["off", "var(--muted)"], ["on", "var(--cross)"]].forEach(function (pair) {
       var s = state.series[pair[0]], c = pair[1];
       if (!s.length) return;
@@ -599,7 +636,7 @@ var ARXIV_ID = "";   // e.g. "2610.xxxxx"
         g.push('<circle cx="' + x(i) + '" cy="' + y(v) + '" r="4.5" fill="' + c + '" stroke="var(--surface)" stroke-width="2"/>');
       });
       var li = s.length - 1;
-      g.push('<text class="tick" x="' + (x(li) + (li === n - 1 ? -8 : 8)) + '" y="' + (y(s[li]) - 9) + '" text-anchor="' + (li === n - 1 ? "end" : "start") + '" style="fill:' + c + '">$' + s[li] + '</text>');
+      g.push('<text class="tick" x="' + (x(li) + (li === n - 1 ? -8 : 8)) + '" y="' + (y(s[li]) - 9) + '" text-anchor="' + (li === n - 1 ? "end" : "start") + '" style="fill:' + c + '">' + s[li] + '/3</text>');
     });
     $("chart").innerHTML = g.join("");
   }

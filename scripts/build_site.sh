@@ -7,11 +7,13 @@ cp -R docs _site
 mkdir -p _site/py/examples
 cp -R evolvemas _site/py/
 rm -rf _site/py/evolvemas/__pycache__
-cp examples/negotiation.py _site/py/examples/
+cp examples/debate.py _site/py/examples/
+mkdir -p _site/py/examples/data
+cp examples/data/*.jsonl _site/py/examples/data/
 python3 - <<'PY'
 import json, pathlib, tomllib
 root = pathlib.Path("_site/py")
-files = sorted(str(p.relative_to(root)) for p in root.rglob("*.py"))
+files = sorted(str(p.relative_to(root)) for p in list(root.rglob("*.py")) + list(root.rglob("*.jsonl")))
 version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
 (root / "manifest.json").write_text(json.dumps({"version": version, "files": files}, indent=1))
 runs = pathlib.Path("_site/runs")

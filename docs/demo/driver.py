@@ -1,6 +1,6 @@
 """Browser driver for the live demo. Runs inside Pyodide in a Web Worker.
 
-It drives the same negotiation host as examples/negotiation.py, using the real
+It drives the multiagent debate host in examples/debate.py, using the real
 `evolvemas` package, and streams one JSON event per step back to the page.
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path[:0] = ["/py", "/py/examples"]
 
-import negotiation as N  # noqa: E402
+import debate as D  # noqa: E402
 from evolvemas import EvolveMAS, ScriptedLLM  # noqa: E402
 
 try:
@@ -87,50 +87,43 @@ class HttpLLM:
 
 
 class Session:
+    """Multiagent debate on GSM8K (examples/debate.py) with every debater on EvolveMAS."""
+
     def __init__(self, backend, evolve):
+        self.problems = D.load_problems()
         if backend.get("kind") == "live":
             self.llm = HttpLLM(backend["provider"], backend["api_key"], backend["model"],
                                backend.get("base_url", ""))
         else:
-            self.llm = ScriptedLLM(N.mock_respond)
+            self.llm = ScriptedLLM(D.mock_respond_factory(self.problems))
         self.root = RUNS / uuid.uuid4().hex[:8]
         self.plugin = EvolveMAS(self.root, self.llm, online=evolve, evolve=evolve)
-        self.plugin.register("Lena", profile="seller of an antique oak table")
-        self.dir = self.root / "Lena"
+        for a, prof in D.AGENTS.items():
+            self.plugin.register(a, profile=prof)
         self.episode = 0
 
-    def files(self):
-        read = lambda name: (self.dir / name).read_text(encoding="utf-8") if (self.dir / name).exists() else ""
-        return {"memory_md": read("MEMORY.md"), "knowledge_md": read("KNOWLEDGE.md")}
+    def files(self, agent):
+        d = self.root / agent
+        read = lambda name: (d / name).read_text(encoding="utf-8") if (d / name).exists() else ""
+        return {"agent": agent, "memory_md": read("MEMORY.md"), "knowledge_md": read("KNOWLEDGE.md")}
 
     def run_episode(self):
-        p, llm = self.plugin, self.llm
+        p = self.problems[self.episode % len(self.problems)]
         emit({"t": "episode", "ep": self.episode})
-        p.begin_episode("Lena")
-        emit({"t": "hook", "name": "begin_episode", **self.files()})
-        transcript = []
-        for _ in range(N.MAX_ROUNDS):
-            ctx = p.context("Lena")
-            emit({"t": "hook", "name": "context", "context": ctx})
-            lena = N.speak(llm, N.SELLER, transcript, "Lena", memory=ctx)
-            transcript.append(("Lena", lena))
-            emit({"t": "say", "who": "Lena", "text": lena})
-            if N.ended(lena):
-                p.observe("Lena", [{"speaker": "Lena", "content": lena}])
-                emit({"t": "hook", "name": "observe", **self.files()})
-                break
-            marco = N.speak(llm, N.BUYER, transcript, "Marco")
-            transcript.append(("Marco", marco))
-            emit({"t": "say", "who": "Marco", "text": marco})
-            p.observe("Lena", [{"speaker": "Lena", "content": lena}, {"speaker": "Marco", "content": marco}])
-            emit({"t": "hook", "name": "observe", **self.files()})
-            if N.ended(marco):
-                break
-        result = N.evaluate(transcript)
-        emit({"t": "result", "ep": self.episode, "result": result})
-        p.end_episode("Lena", result)
-        emit({"t": "hook", "name": "end_episode", **self.files(), "context": p.context("Lena")})
-        emit({"t": "usage", "usage": dict(llm.usage)})
+        emit({"t": "problem", "id": p["id"], "question": p["question"], "gold": p["answer"]})
+
+        def on_event(e):
+            if e["t"] == "context":
+                emit({"t": "hook", "name": "context", "agent": e["agent"], "context": e["context"]})
+            elif e["t"] == "say":
+                emit({"t": "say", "who": e["agent"], "round": e["round"], "text": e["text"], "answer": e["answer"]})
+            elif e["t"] in ("observe", "end_episode"):
+                emit({"t": "hook", "name": e["t"], **self.files(e["agent"])})
+            elif e["t"] == "result":
+                emit({"t": "result", "ep": self.episode, "result": e["result"]})
+
+        D.run_episode(self.plugin, self.llm, p, on_event)
+        emit({"t": "usage", "usage": dict(self.llm.usage)})
         self.episode += 1
 
 
@@ -143,7 +136,8 @@ def handle(msg_json):
     try:
         if msg["cmd"] == "new":
             _session = Session(msg["backend"], msg["evolve"])
-            emit({"t": "session", "evolve": msg["evolve"], **_session.files()})
+            emit({"t": "session", "evolve": msg["evolve"], "agents": list(D.AGENTS),
+                  "files": {a: _session.files(a) for a in D.AGENTS}})
         elif msg["cmd"] == "run":
             for _ in range(int(msg.get("episodes", 1))):
                 _session.run_episode()
