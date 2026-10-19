@@ -67,7 +67,7 @@
     // agent state after each event (carried across episodes)
     var states = [], st = {};
     events.forEach(function (ev) {
-      if (ev.t === "hook" && ev.agent) { st = Object.assign({}, st); st[ev.agent] = ev.state; }
+      if (ev.t === "hook" && ev.agent && ev.state) { st = Object.assign({}, st); st[ev.agent] = ev.state; }
       states.push(st);
     });
     cur = { trace: trace, bench: bench, events: events, states: states, epStart: epStart };
