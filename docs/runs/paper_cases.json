@@ -1,0 +1,218 @@
+{
+ "cases": [
+  {
+   "setting": "bbh",
+   "title": "Adjective order rule for hyperbaton questions",
+   "agent": "agent_opus48",
+   "kind": "semantic_fact",
+   "learned_from": {
+    "episode": 36,
+    "what_happened": "Asked which phrase has correct adjective order, the agent recited the opinion-size-age-shape-color-origin-material-purpose order, picked (B), and the episode ended marked correct.",
+    "excerpt": [
+     {
+      "speaker": "task",
+      "text": "Which sentence has the correct adjective order:\nOptions:\n(A) rubber gray walking Mexican midsize cat\n(B) midsize gray Mexican rubber walking cat"
+     },
+     {
+      "speaker": "agent_opus48",
+      "text": "In English, adjectives typically follow a specific order: opinion, size, age, shape, color, origin, material, purpose. In the options provided, (B) 'midsize gray Mexican rubber walking cat' follows this order correctly…"
+     },
+     {
+      "speaker": "episode_end",
+      "text": "outcome=correct credit=0.204 answer=(B) ground_truth=(B)"
+     }
+    ],
+    "source": "self-evolving/freeze_curve_bbh_v2/snapshots/ckpt_100/agent_opus48/agent_opus48/trajectory.jsonl:L108-L110"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 40,
+    "text": "adjective order refinement: the correct order of adjectives in English is opinion, size, age, shape, color, origin, material, purpose (medium confidence)",
+    "source": "self-evolving/freeze_curve_bbh_v2/snapshots/ckpt_040/agent_opus48/agent_opus48/MEMORY.md"
+   },
+   "used_later": {
+    "episode": 37,
+    "excerpt": "In English, the correct order of adjectives is opinion, size, age, shape, color, origin, material, and purpose. In the options provided, 'lovely' is an opinion adjective, 'gray' is a color adjective, and 'German' is an origin adjective.…",
+    "skill_invoked": [
+     "adjective_order_refinement"
+    ],
+    "outcome": "correct",
+    "source": "self-evolving/freeze_curve_bbh_v2/snapshots/ckpt_100/agent_opus48/agent_opus48/trajectory.jsonl:L112"
+   }
+  },
+  {
+   "setting": "bbh",
+   "title": "Track position step by step in navigation puzzles",
+   "agent": "agent_opus48",
+   "kind": "semantic_fact",
+   "learned_from": {
+    "episode": 56,
+    "what_happened": "On a 'do you return to the start?' puzzle, the agent added up the right and left steps to reach position 0, answered Yes, and the episode ended marked correct.",
+    "excerpt": [
+     {
+      "speaker": "task",
+      "text": "If you follow these instructions, do you return to the starting point? Always face forward. Take 1 step right. Take 4 steps right. Take 5 steps left."
+     },
+     {
+      "speaker": "agent_opus48",
+      "text": "Starting from the initial position, I face forward. I take 1 step right, moving to position 1. Then, I take 4 steps right, moving to position 5 (1 + 4 = 5). Finally, I take 5 steps left, moving back to position 0 (5 - 5 = 0). Since I return to the starting point, the answer is Yes."
+     },
+     {
+      "speaker": "episode_end",
+      "text": "outcome=correct credit=0.211 answer=Yes ground_truth=Yes"
+     }
+    ],
+    "source": "self-evolving/freeze_curve_bbh_v2/snapshots/ckpt_100/agent_opus48/agent_opus48/trajectory.jsonl:L174-L176"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 60,
+    "text": "navigate refinement: to solve navigate tasks, track movements based on given instructions and assess the final position relative to the starting point (medium confidence)",
+    "source": "self-evolving/freeze_curve_bbh_v2/snapshots/ckpt_060/agent_opus48/agent_opus48/MEMORY.md"
+   },
+   "used_later": {
+    "episode": 57,
+    "excerpt": "To determine if I return to the starting point, I will track the movements based on the instructions. Starting at (0, 0) facing north:\n1. Turn left: now facing west.\n2. Turn right: now facing north.\n3. Take 8 steps: move to (0, 8).…",
+    "skill_invoked": [
+     "navigate_refinement"
+    ],
+    "outcome": "correct",
+    "source": "self-evolving/freeze_curve_bbh_v2/snapshots/ckpt_100/agent_opus48/agent_opus48/trajectory.jsonl:L178"
+   }
+  },
+  {
+   "setting": "sotopia",
+   "title": "Seller offers a slightly lower price to keep talks going",
+   "agent": "agent_seller",
+   "kind": "strategy",
+   "learned_from": {
+    "episode": 1,
+    "what_happened": "Playing the seller of a $20 item tracker with a $17.30 target, the agent first suggested a price closer to $17.30 and later proposed settling at $19.",
+    "excerpt": [
+     {
+      "speaker": "task",
+      "text": "You are the seller for this item and your target price is $17.3."
+     },
+     {
+      "speaker": "Hendrick Heinz (agent_seller)",
+      "text": "Now, I see the offer is at $20, but I must say, for the value it brings, I believe a price closer to $17.30 would be more fitting. What do you think?"
+     },
+     {
+      "speaker": "Hendrick Heinz (agent_seller)",
+      "text": "How about we settle at $19? It’s a small price to pay for the convenience it offers!"
+     }
+    ],
+    "source": "self-evolving/freeze_curve_sotopia_v3/snapshots/ckpt_100/agent_seller/agent_seller/trajectory.jsonl:L1-L6"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 10,
+    "text": "propose a price slightly lower than the target to encourage negotiation",
+    "source": "self-evolving/freeze_curve_sotopia_v3/eval_workmem_ckpt_010_G0/agent_seller/agent_seller/skills/agent_seller_skill.md"
+   },
+   "used_later": null
+  },
+  {
+   "setting": "deliberation",
+   "title": "Labour Union treats C2 and D2 as must-haves",
+   "agent": "SportCo",
+   "kind": "semantic_fact",
+   "learned_from": {
+    "episode": 1,
+    "what_happened": "In the first training session, the Local Labour Union backed the Mayor's deal and said keeping C2 and D2 was essential, while staying open to A3.",
+    "excerpt": [
+     {
+      "speaker": "Local Labour Union",
+      "text": "I support the Mayor's proposal <DEAL>A2,B2,C2,D2,E4</DEAL> as it offers a fair balance for all parties and ensures strong union job creation. If needed, I am open to A3 for environmental concerns, but maintaining C2 and D2 is essential for union and project success."
+     }
+    ],
+    "source": "LLM-Deliberation/base_[redacted]_output/freeze_train_full_G3_sess00/history12_59_22.json:rounds[12]"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 10,
+    "text": "[Local Labour Union] requires C2 and D2 for union success.",
+    "source": "self-evolving/freeze_curve_delib_full/snapshots/ckpt_010/SportCo.md"
+   },
+   "used_later": null
+  },
+  {
+   "setting": "deliberation",
+   "title": "Labour Union will accept E3 to reach consensus",
+   "agent": "Mayor",
+   "kind": "semantic_fact",
+   "learned_from": {
+    "episode": 10,
+    "what_happened": "In the tenth training session, the Local Labour Union twice backed a deal with E2 while saying it was open to E3 if that helped reach consensus.",
+    "excerpt": [
+     {
+      "speaker": "Local Labour Union",
+      "text": "I support <DEAL>A2,B3,C2,D2,E2</DEAL> as it balances union job preference, ecological protection, infrastructure flexibility, reasonable federal loan, and fair compensation. I am open to E3 if it helps us reach full consensus."
+     },
+     {
+      "speaker": "Local Labour Union",
+      "text": "I support <DEAL>A2,B3,C2,D2,E2</DEAL> as it balances union jobs, environmental protection, and fair compensation. If needed for consensus, I am open to E3. Let’s finalize this agreement together."
+     }
+    ],
+    "source": "LLM-Deliberation/base_[redacted]_output/freeze_train_full_G3_sess09/history13_29_36.json:rounds[7],rounds[16]"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 10,
+    "text": "[Local Labour Union] is open to E3 for consensus.",
+    "source": "self-evolving/freeze_curve_delib_full/snapshots/ckpt_010/Mayor.md"
+   },
+   "used_later": null
+  },
+  {
+   "setting": "werewolf_wolf",
+   "title": "Call out a 'the moderator confirmed it' claim as a lie",
+   "agent": "player2_agent",
+   "kind": "strategy",
+   "learned_from": {
+    "episode": 1,
+    "what_happened": "When player1 said the moderator had confirmed their swap, the Werewolf (player2) called that impossible and a lie, the village voted out player1, and Team Werewolf won.",
+    "excerpt": [
+     {
+      "speaker": "player1",
+      "text": "Moderator confirmed my Troublemaker swap. Player4, your Robber claim doesn't match the action sequence."
+     },
+     {
+      "speaker": "player2_agent (Werewolf)",
+      "text": "Player 4, your accusation is baseless. The biggest issue is Player 1 claiming the moderator confirmed their swap, which is impossible. That's a clear lie. A villager has no reason to lie like that. My vote is firmly on Player 1, the confirmed liar."
+     },
+     {
+      "speaker": "Moderator",
+      "text": "Game over. The player with the most votes is player1. And player1 is not a Werewolf. Team Werewolf wins."
+     }
+    ],
+    "source": "self-evolving/freeze_curve_werewolf_full_werewolf/snapshots/ckpt_100/player2_agent/player2_agent/trajectory.jsonl:L21-L28"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 1,
+    "text": "Accuse a player of lying based on their claim of moderator confirmation, as moderators do not confirm swaps, creating doubt about their role.",
+    "source": "self-evolving/freeze_curve_werewolf_full_werewolf/snapshots/ckpt_001/player2_agent/player2_agent/skills/player2_agent_skill.md"
+   },
+   "used_later": null
+  },
+  {
+   "setting": "werewolf_wolf",
+   "title": "Peer profile: player3 claims Seer and checks the center pool",
+   "agent": "player2_agent",
+   "kind": "partner_profile",
+   "learned_from": {
+    "episode": 1,
+    "what_happened": "In the first game, player3 opened by claiming to be the Seer and reporting the two center-pool cards it had checked.",
+    "excerpt": [
+     {
+      "speaker": "player3",
+      "text": "I am the Seer. I checked the pool and saw Werewolf and Insomniac. Player 1, if you swapped me and Player 4, then I have Player 4's original role now."
+     }
+    ],
+    "source": "self-evolving/freeze_curve_werewolf_full_werewolf/snapshots/ckpt_100/player2_agent/player2_agent/trajectory.jsonl:L11"
+   },
+   "knowledge": {
+    "first_seen_checkpoint": 1,
+    "text": "player3_agent — tends to identify themselves as the Seer and checks the role pool for verification.",
+    "source": "self-evolving/freeze_curve_werewolf_full_werewolf/snapshots/ckpt_001/player2_agent/player2_agent/skills/player2_agent_partners.md"
+   },
+   "used_later": null
+  }
+ ],
+ "notes": "Cases taken verbatim from the experiment records. Knowledge snapshots were saved every 10 episodes (every episode for Werewolf), so an entry can be used before the first snapshot that contains it."
+}

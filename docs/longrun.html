@@ -3,257 +3,194 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>EvolveMAS Long Run</title>
-<meta name="description" content="One debate team, 100 GSM8K problems in a row, with and without EvolveMAS: accuracy over time and how each agent's knowledge changed.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231c8564%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
+<title>EvolveMAS Knowledge Over Time</title>
+<meta name="description" content="Real cases from the EvolveMAS paper's experiments: what an agent saw, the knowledge it distilled, and where it used that knowledge later.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%2317805e%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="site.css">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: summary numbers, two comparison charts, then a knowledge timeline (slider + per-agent knowledge with diffs). */
-:root { --on: var(--know); --off: #8a96a6; --within: var(--mem); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --off: #7d8a9a; } }
-:root[data-theme="dark"] { --off: #7d8a9a; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 400 1rem/1.55 var(--font-body); padding-inline: 1rem; padding-block: 0; }
-a { color: var(--within); text-underline-offset: 0.18em; }
-button, input { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--within); outline-offset: 2px; border-radius: 4px; }
-code { font-family: var(--font-mono); font-size: 0.86em; }
-.wrap { max-width: 76rem; margin-inline: auto; }
-.wrap > header { padding-block: 2rem 1.4rem; }
-.back { font: 500 0.8rem/1 var(--font-mono); color: var(--muted); text-decoration: none; }
-h1 { font: 800 clamp(1.8rem, 4vw, 2.6rem)/1.05 var(--font-display); margin: 0.5rem 0 0; letter-spacing: -0.01em; }
-.lede { color: var(--muted); max-width: 66ch; margin: 0.6rem 0 0; }
-h2 { font: 700 1.25rem/1.25 var(--font-display); margin: 0 0 0.3rem; }
-.sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 0.9rem; }
-.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 1.1rem 1.2rem 1.2rem; }
-.stack { display: grid; gap: 1.2rem; padding-bottom: 3rem; }
-
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; }
-.stat { border-top: 2px solid var(--fg); padding-top: 0.55rem; min-width: 0; }
-.stat .lbl { color: var(--muted); font-size: 0.88rem; line-height: 1.35; }
-.stat .vals { display: flex; gap: 1rem; align-items: baseline; margin-top: 0.25rem; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
-.stat .v { font: 700 1.7rem/1 var(--font-display); }
-.stat .v small { font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-top: 0.3rem; }
-.v.on { color: var(--on); } .v.off { color: var(--off); }
-
-.charts { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }
-@media (min-width: 60rem) { .charts { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+/* Layout: setting tabs; then a two-column card (frozen-score chart | knowledge growth), then the knowledge browser
+   (checkpoint slider + agent picker + strategies and partner profiles with diffs). */
+.page-head { padding-block: 2.2rem 1.2rem; }
+.page-head h1 { font: 800 clamp(1.8rem, 4vw, 2.6rem)/1.05 var(--font-display); margin: 0; letter-spacing: -0.015em; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.tab { border: 1px solid var(--rule); background: var(--surface); border-radius: 10px; padding: 0.5rem 0.85rem; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 0.1rem; }
+.tab b { font: 700 0.98rem/1.2 var(--font-display); }
+.tab span { font: 500 0.66rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.tab[data-setting="cooperative"] span { color: var(--coop); } .tab[data-setting="mixed-motive"] span { color: var(--mixed); } .tab[data-setting="adversarial"] span { color: var(--adv); }
+.tab[aria-selected="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.stack { display: grid; gap: 1.1rem; padding-bottom: 3rem; }
+.card { padding: 1.1rem 1.2rem 1.2rem; }
+.card h2 { font: 700 1.2rem/1.25 var(--font-display); margin: 0 0 0.25rem; }
+.sub { color: var(--muted); font-size: 0.92rem; margin: 0 0 0.8rem; }
+.two { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.1rem; }
+@media (min-width: 60rem) { .two { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); } }
 svg.chart { width: 100%; height: auto; display: block; }
-.axis { stroke: var(--rule); }
-.tick { fill: var(--muted); font: 400 11px var(--font-mono); }
-.legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1.2rem; font-size: 0.85rem; color: var(--muted); margin-top: 0.4rem; }
-.legend i { display: inline-block; width: 1.1rem; height: 0.22rem; border-radius: 2px; vertical-align: 0.22em; margin-right: 0.35rem; }
-
-.timeline-head { display: flex; flex-wrap: wrap; gap: 0.6rem 1.2rem; align-items: center; justify-content: space-between; }
-.slider { display: flex; align-items: center; gap: 0.8rem; flex: 1; min-width: 16rem; }
-.slider input { flex: 1; accent-color: var(--on); }
-.slider output { font: 500 0.9rem/1 var(--font-mono); min-width: 6.5rem; text-align: right; font-variant-numeric: tabular-nums; }
-.stepbtn { border: 1px solid var(--rule); background: transparent; border-radius: 8px; padding: 0.3rem 0.6rem; cursor: pointer; }
-.picker { display: flex; gap: 0.3rem; flex-wrap: wrap; }
-.picker button { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 0.25rem 0.7rem; cursor: pointer; font-size: 0.85rem; }
+.axis { stroke: var(--rule); } .tick { fill: var(--muted); font: 400 11px var(--font-mono); }
+.note { font-size: 0.86rem; color: var(--muted); border-left: 2px solid var(--rule); padding-left: 0.7rem; margin: 0.8rem 0 0; }
+.how { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.8rem; margin-top: 0.9rem; }
+.how div { font-size: 0.9rem; }
+.how b { display: block; font: 500 0.7rem/1.3 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.2rem; }
+.ctl { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; align-items: center; justify-content: space-between; }
+.slider { display: flex; align-items: center; gap: 0.7rem; flex: 1; min-width: 15rem; }
+.slider input { flex: 1; accent-color: var(--know); }
+.slider output { font: 500 0.9rem/1 var(--font-mono); min-width: 7.5rem; text-align: right; }
+.picker { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.picker button { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 0.22rem 0.65rem; cursor: pointer; font-size: 0.84rem; }
 .picker button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
-.changes { margin-top: 0.8rem; }
-.changes svg { width: 100%; height: 3.2rem; display: block; cursor: pointer; }
-
-.tl { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; margin-top: 1rem; }
-@media (min-width: 60rem) { .tl { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); } }
-.prob { background: var(--surface-2); border-radius: 10px; padding: 0.8rem 0.9rem; font-size: 0.92rem; min-width: 0; }
-.prob .id { font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-.prob p { margin: 0.35rem 0 0.7rem; }
-.ans { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
-.ans th, .ans td { text-align: left; padding: 0.25rem 0.4rem; border-top: 1px solid var(--rule); }
-.ans th { font: 500 0.7rem/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
-.ok { color: var(--on); } .no { color: var(--bad); }
-.kn { min-width: 0; display: grid; gap: 0.8rem; font-size: 0.9rem; }
-.kn h3 { margin: 0 0 0.3rem; font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--on); display: flex; gap: 0.5rem; align-items: baseline; }
+.kgrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; margin-top: 1rem; }
+@media (min-width: 60rem) { .kgrid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); } }
+.kn h3 { margin: 0 0 0.35rem; font: 500 0.72rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--know); display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
 .kn h3 span { color: var(--muted); text-transform: none; letter-spacing: 0; font-family: var(--font-body); font-size: 0.85rem; }
-.kn ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; }
-.kn li { padding: 0.18rem 0.4rem; border-radius: 4px; overflow-wrap: anywhere; }
-.kn li.new { background: var(--new-bg); } .kn li.chg { background: var(--chg-bg); }
-.kn .none { color: var(--muted); font-style: italic; }
-.kn .rel { font-family: var(--font-mono); font-size: 0.8em; color: var(--muted); }
-.removed { color: var(--muted); text-decoration: line-through; }
-.note { font-size: 0.88rem; color: var(--muted); border-left: 2px solid var(--rule); padding-left: 0.7rem; max-width: 70ch; }
+.kn ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.2rem; max-height: 26rem; overflow-y: auto; font-size: 0.9rem; }
+.kn li { padding: 0.2rem 0.45rem; border-radius: 4px; overflow-wrap: anywhere; }
+.kn li.new { background: var(--new-bg); }
+.kn li .k { font: 500 0.78rem/1.4 var(--font-mono); color: var(--muted); margin-right: 0.3rem; }
+.kn li .c { font: 400 0.75rem/1 var(--font-mono); color: var(--muted); margin-left: 0.3rem; }
+.kn .none { color: var(--muted); font-style: italic; font-size: 0.9rem; }
 .empty { padding: 3rem 1rem; text-align: center; color: var(--muted); }
-footer { padding-block: 0 3rem; color: var(--muted); font-size: 0.85rem; }
+.cases { display: grid; gap: 1rem; }
+.case { padding: 1.1rem 1.2rem 1.2rem; }
+.case h3 { font: 700 1.1rem/1.3 var(--font-display); margin: 0 0 0.2rem; }
+.case .meta { font: 400 0.78rem/1.4 var(--font-mono); color: var(--muted); margin-bottom: 0.9rem; }
+.flow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.7rem; align-items: stretch; }
+@media (min-width: 62rem) { .flow { grid-template-columns: minmax(0, 1.15fr) auto minmax(0, 1fr) auto minmax(0, 1.15fr); } .flow.two { grid-template-columns: minmax(0, 1.2fr) auto minmax(0, 1fr); } }
+.step { border-radius: 8px; padding: 0.7rem 0.8rem; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.step .lbl { font: 500 0.68rem/1.2 var(--font-mono); letter-spacing: 0.07em; text-transform: uppercase; }
+.step.saw { background: var(--mem-soft); } .step.saw .lbl { color: var(--mem); }
+.step.learned { background: var(--know-soft); } .step.learned .lbl { color: var(--know); }
+.step.used { background: var(--surface-2); } .step.used .lbl { color: var(--fg); }
+.step p { margin: 0; font-size: 0.9rem; }
+.quote { font-size: 0.86rem; line-height: 1.45; background: var(--surface); border-radius: 6px; padding: 0.45rem 0.55rem; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 11rem; overflow-y: auto; }
+.quote b { font-weight: 600; }
+.src { font: 400 0.7rem/1.3 var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
+.arrow { align-self: center; justify-self: center; color: var(--muted); font-size: 1.2rem; }
+@media (max-width: 61.99rem) { .arrow { transform: rotate(90deg); } }
+.pill.ok { color: var(--know); } .pill.no { color: var(--bad); }
+.section-h { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin: 0.4rem 0 0.2rem; }
+.section-h h2 { font: 700 1.3rem/1.2 var(--font-display); margin: 0; }
+footer.site { margin-top: 0; }
 </style>
 </head>
 <body>
 <header class="nav"><div class="wrap">
   <a class="logo" href="./"><svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="var(--know)"/><path d="M9 9h13v3H13v3h8v3h-8v3h9v3H9z" fill="#fff"/></svg><span><span class="e">Evolve</span>MAS</span></a>
   <nav aria-label="Pages">
-    <a href="./#loop">The loop</a><a href="./#try">Try it</a><a href="replay.html">Recorded runs</a><a href="evolution.html">In the paper's runs</a><a href="longrun.html" aria-current="page">Long run</a><a href="./#paper">Paper</a>
+    <a href="./#loop">The loop</a><a href="./#try">Try it</a><a href="replay.html">Recorded runs</a><a href="longrun.html" aria-current="page">Knowledge over time</a><a href="./#paper">Paper</a>
   </nav>
   <a class="btn gh" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener" aria-label="GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>GitHub</a>
 </div></header>
+
 <div class="wrap">
-<header>
-    <h1>100 problems, one team</h1>
-  <p class="lede" id="lede">The same three debaters solve GSM8K test problems 1–100 in order, once with EvolveMAS and once with it switched off. The charts compare the two runs; the timeline shows each agent's knowledge after every problem.</p>
-</header>
-
-<div class="stack" id="root"><div class="card empty">Loading the two runs…</div></div>
-
-<footer>Recorded with <code>bench/debate.py --episodes 100</code>. Same problems, same models and the same prompts in both runs; the only difference is whether the plug-in's memory and knowledge updates are on.</footer>
+<div class="page-head">
+  <p class="eyebrow">In the paper's runs</p>
+  <h1>What the agents learned</h1>
+  <p class="lede">Cases taken from the paper's experiment records. Each one follows a piece of knowledge: what the agent saw, what it distilled after the episode, and, where the records show it, when the agent used it again. Below the cases, drag through the checkpoints to read everything an agent knew.</p>
 </div>
+
+<nav class="tabs" role="tablist" aria-label="Settings" id="tabs"></nav>
+<div class="stack" id="root"><div class="card empty">Loading the experiment records…</div></div>
+</div>
+
+<div class="wrap"><footer class="site"><span>Source: the EvolveMAS experiment records (freeze-eval chains). Every quote is copied verbatim from them.</span><span><a href="./">Home</a></span></footer></div>
 
 <script>
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var AG = ["agent_a", "agent_b", "agent_c"];
-  var NAME = { agent_a: "Agent A", agent_b: "Agent B", agent_c: "Agent C" };
-  var on, off, idx = 0, agent = "agent_c";
-
-  Promise.all(["runs/debate_long_on.json", "runs/debate_long_off.json"].map(function (u) {
-    return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
-  })).then(function (res) {
-    on = res[0]; off = res[1];
-    if (!on || !off) { $("root").innerHTML = '<div class="card empty">The long-run recordings are not published yet.</div>'; return; }
-    build();
-  });
-
-  function pct(n, d) { return d ? Math.round(100 * n / d) : 0; }
-  function count(run, f) { return run.episodes.filter(f).length; }
-  function cum(run, f) { var c = 0; return run.episodes.map(function (e, i) { if (f(e)) c++; return c / (i + 1); }); }
+  var data, chain, idx = 0, agent = null, cases = [], casesNote = "";
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
 
+  Promise.all([
+    fetch("runs/paper_evolution.json").then(function (r) { return r.json(); }),
+    fetch("runs/paper_cases.json").then(function (r) { return r.ok ? r.json() : { cases: [] }; }).catch(function () { return { cases: [] }; })
+  ]).then(function (res) {
+    var d = res[0]; cases = res[1].cases || []; casesNote = res[1].notes || "";
+    data = d;
+    $("tabs").innerHTML = d.chains.map(function (c) {
+      return '<button type="button" class="tab" role="tab" data-id="' + c.id + '" data-setting="' + c.setting + '" aria-selected="false"><span>' + esc(c.setting) + '</span><b>' + esc(c.title) + '</b></button>';
+    }).join("");
+    document.querySelectorAll(".tab").forEach(function (b) { b.onclick = function () { pick(b.getAttribute("data-id")); }; });
+    var want = (location.hash || "").slice(1);
+    pick(d.chains.some(function (c) { return c.id === want; }) ? want : d.chains[0].id);
+  }).catch(function () { $("root").innerHTML = '<div class="card empty">The experiment records could not be loaded.</div>'; });
+
+  window.addEventListener("hashchange", function () {
+    var id = (location.hash || "").slice(1);
+    if (data && (!chain || chain.id !== id) && data.chains.some(function (c) { return c.id === id; })) pick(id);
+  });
+
+  function pick(id) {
+    chain = data.chains.filter(function (c) { return c.id === id; })[0];
+    document.querySelectorAll(".tab").forEach(function (b) { b.setAttribute("aria-selected", String(b.getAttribute("data-id") === id)); });
+    try { history.replaceState(null, "", "#" + id); } catch (e) {}
+    var ks = Object.keys(chain.knowledge).map(Number).sort(function (a, b) { return a - b; });
+    chain._ckpts = ks;
+    idx = ks.length - 1;
+    var agents = Object.keys(chain.knowledge[ks[ks.length - 1]] || {});
+    var best = agents.slice().sort(function (a, b) { return size(b, ks[ks.length - 1]) - size(a, ks[ks.length - 1]); });
+    agent = best[0];
+    build();
+  }
+  function size(a, ep) { var k = (chain.knowledge[ep] || {})[a]; return k ? k.strategies.length + Object.keys(k.partners).length : 0; }
+
   function build() {
-    var n = Math.min(on.episodes.length, off.episodes.length);
-    var team = function (e) { return e.team_correct; };
-    var cFirst = function (e) { return e.answers.agent_c.round1_correct; };
-    var allFirst = function (e) { return AG.every(function (a) { return e.answers[a].round1_correct; }); };
-    var fixedC = function (e) { return !e.answers.agent_c.round1_correct && e.answers.agent_c.final_correct; };
-    var m = on.models || {};
+    var ks = chain._ckpts, agents = Object.keys(chain.knowledge[ks[ks.length - 1]] || {});
     var h = '';
-    h += '<div class="card"><div class="stats">' +
-      stat("Team answer correct", count(on, team), count(off, team), n) +
-      stat("Agent C's first answer correct", count(on, cFirst), count(off, cFirst), n) +
-      stat("All three first answers correct", count(on, allFirst), count(off, allFirst), n) +
-      stat("Agent C wrong first, fixed by debate", count(on, fixedC), count(off, fixedC), n) +
-      '</div><p class="note" style="margin-top:1rem">Models: ' + Object.keys(m).map(function (k) { return esc(k) + ' <code>' + esc(m[k]) + '</code>'; }).join(", ") +
-      '. One run of each condition, so differences of a few problems are within run-to-run noise.</p></div>';
-    h += '<div class="charts">' +
-      '<div class="card"><h2>Team accuracy so far</h2><p class="sub">Share of problems answered correctly by majority vote, up to each problem</p><svg class="chart" id="c1" viewBox="0 0 560 230"></svg>' + legend() + '</div>' +
-      '<div class="card"><h2>Agent C\'s first answers so far</h2><p class="sub">Share of problems where the fast agent was right before reading the others</p><svg class="chart" id="c2" viewBox="0 0 560 230"></svg>' + legend() + '</div>' +
-      '</div>';
-    h += '<div class="card"><div class="timeline-head"><div><h2>Knowledge over time</h2><p class="sub" style="margin:0">With EvolveMAS on. Drag to any problem to see what each agent knew after it.</p></div>' +
-      '<div class="picker" id="picker">' + AG.map(function (a) { return '<button type="button" data-a="' + a + '" aria-pressed="' + (a === agent) + '">' + NAME[a] + '</button>'; }).join("") + '</div></div>' +
-      '<div class="slider" style="margin-top:0.9rem"><button type="button" class="stepbtn" id="prev" aria-label="Previous problem">◀</button>' +
-      '<label for="pos" class="sub" style="margin:0">Problem</label><input type="range" id="pos" min="1" max="' + n + '" value="1"><output id="posout"></output>' +
-      '<button type="button" class="stepbtn" id="next" aria-label="Next problem">▶</button></div>' +
-      '<div class="changes"><p class="sub" style="margin:0.4rem 0 0.2rem">How much the selected agent\'s knowledge changed after each problem (red marks: Agent C\'s first answer was wrong)</p><svg id="chg" viewBox="0 0 560 48" preserveAspectRatio="none" role="img" aria-label="Knowledge changes per problem"></svg></div>' +
-      '<div class="tl"><div class="prob" id="prob"></div><div class="kn" id="know"></div></div></div>';
+    var mine = cases.filter(function (c) { return c.setting === chain.id; });
+    h += '<div class="section-h"><h2>Cases</h2><span class="sub" style="margin:0">' + mine.length + ' from the records</span></div>';
+    h += mine.length ? '<div class="cases">' + mine.map(caseCard).join("") + '</div>' : '<div class="card empty">The records for this setting have no case that is clear enough to show. The knowledge itself is below.</div>';
+    if (mine.length && casesNote) h += '<p class="note">' + esc(casesNote) + '</p>';
+    if (chain.note) h += '<p class="note">' + esc(chain.note) + '</p>';
+    h += '<div class="section-h" style="margin-top:1rem"><h2>Everything an agent knew</h2></div>';
+    h += '<div class="card"><div class="ctl"><div><h2>Knowledge at a checkpoint</h2><p class="sub" style="margin:0">Green: new since the previous checkpoint.</p></div>' +
+      '<div class="picker" id="picker">' + agents.map(function (a) { return '<button type="button" data-a="' + esc(a) + '" aria-pressed="' + (a === agent) + '">' + esc(label(a)) + '</button>'; }).join("") + '</div></div>' +
+      '<div class="slider" style="margin-top:0.9rem"><label for="pos" class="sub" style="margin:0">After episode</label><input type="range" id="pos" min="0" max="' + (ks.length - 1) + '" value="' + idx + '"><output id="posout"></output></div>' +
+      '<div class="kgrid"><div class="kn" id="strat"></div><div class="kn" id="prof"></div></div></div>';
     $("root").innerHTML = h;
-
-    line($("c1"), [cum(on, team), cum(off, team)], n);
-    line($("c2"), [cum(on, cFirst), cum(off, cFirst)], n);
-    $("pos").oninput = function () { idx = +this.value - 1; render(); };
-    $("prev").onclick = function () { idx = Math.max(0, idx - 1); $("pos").value = idx + 1; render(); };
-    $("next").onclick = function () { idx = Math.min(n - 1, idx + 1); $("pos").value = idx + 1; render(); };
+    $("pos").oninput = function () { idx = +this.value; renderK(); };
     document.querySelectorAll("#picker button").forEach(function (b) {
-      b.onclick = function () { agent = b.getAttribute("data-a"); document.querySelectorAll("#picker button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); render(); };
+      b.onclick = function () { agent = b.getAttribute("data-a"); document.querySelectorAll("#picker button").forEach(function (x) { x.setAttribute("aria-pressed", String(x === b)); }); renderK(); };
     });
-    $("chg").addEventListener("click", function (e) {
-      var r = this.getBoundingClientRect(); idx = Math.max(0, Math.min(n - 1, Math.floor((e.clientX - r.left) / r.width * n))); $("pos").value = idx + 1; render();
-    });
-    render();
+    renderK();
   }
-
-  function stat(label, a, b, n) {
-    return '<div class="stat"><div class="lbl">' + label + '</div><div class="vals">' +
-      '<span class="v on">' + pct(a, n) + '%<small>on · ' + a + '/' + n + '</small></span>' +
-      '<span class="v off">' + pct(b, n) + '%<small>off · ' + b + '/' + n + '</small></span></div></div>';
+  function caseCard(c) {
+    var lf = c.learned_from || {}, k = c.knowledge || {}, u = c.used_later;
+    var kindName = { strategy: "Interaction strategy", partner_profile: "Partner profile", semantic_fact: "Semantic knowledge" }[c.kind] || "Knowledge";
+    var saw = '<div class="step saw"><span class="lbl">What it saw' + (lf.episode != null ? " · training episode " + lf.episode : "") + '</span>' +
+      (lf.what_happened ? '<p>' + esc(lf.what_happened) + '</p>' : '') +
+      '<div class="quote">' + (lf.excerpt || []).map(function (x) { return (x.speaker ? '<b>' + esc(x.speaker) + ':</b> ' : '') + esc(x.text); }).join("\n\n") + '</div>' +
+      (lf.source ? '<span class="src">' + esc(lf.source) + '</span>' : '') + '</div>';
+    var learned = '<div class="step learned"><span class="lbl">' + kindName + ' it distilled' + (k.first_seen_checkpoint != null ? " · first in the snapshot after episode " + k.first_seen_checkpoint : "") + '</span>' +
+      '<div class="quote">' + esc(k.text) + '</div>' + (k.source ? '<span class="src">' + esc(k.source) + '</span>' : '') + '</div>';
+    var used = u ? '<div class="step used"><span class="lbl">Used again · training episode ' + esc(u.episode) + ' <span class="pill ' + (u.outcome === "correct" || u.outcome === "passed" ? "ok" : "no") + '">' + esc(u.outcome) + '</span></span>' +
+      '<p>The agent named <code>' + esc((u.skill_invoked || []).join(", ")) + '</code> as knowledge it used.</p>' +
+      '<div class="quote">' + esc(u.excerpt) + '</div>' + (u.source ? '<span class="src">' + esc(u.source) + '</span>' : '') + '</div>' : '';
+    return '<article class="card case"><h3>' + esc(c.title) + '</h3><div class="meta">' + esc(label(c.agent || "")) + ' · ' + kindName + '</div>' +
+      '<div class="flow' + (u ? '' : ' two') + '">' + saw + '<span class="arrow" aria-hidden="true">→</span>' + learned + (u ? '<span class="arrow" aria-hidden="true">→</span>' + used : '') + '</div></article>';
   }
-  function legend() { return '<div class="legend"><span><i style="background:var(--on)"></i>EvolveMAS on</span><span><i style="background:var(--off)"></i>EvolveMAS off</span></div>'; }
+  function label(a) { return a.replace(/_agent$/, "").replace(/^agent_/, ""); }
 
-  function line(svg, series, n) {
-    var W = 560, H = 230, L = 42, R = 16, T = 12, B = 30;
-    var all = series[0].concat(series[1]);
-    var mn = Math.min.apply(null, all.filter(function (_, i) { return i % n >= Math.min(5, n - 1); }));
-    var lo = Math.max(0, Math.min(0.8, Math.floor((mn - 0.02) * 10) / 10));
-    var step = 1 - lo <= 0.3 ? 0.05 : 1 - lo <= 0.6 ? 0.1 : 0.2;
-    var x = function (i) { return L + i * (W - L - R) / Math.max(1, n - 1); };
-    var y = function (v) { return T + (1 - (v - lo) / (1 - lo)) * (H - T - B); };
-    var g = [];
-    for (var v = lo; v <= 1.0001; v = Math.round((v + step) * 100) / 100) {
-      g.push('<line class="axis" x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '"/>');
-      g.push('<text class="tick" x="' + (L - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end">' + Math.round(v * 100) + '%</text>');
-    }
-    [1, Math.round(n / 4), Math.round(n / 2), Math.round(3 * n / 4), n].forEach(function (k) {
-      g.push('<text class="tick" x="' + x(k - 1) + '" y="' + (H - 8) + '" text-anchor="middle">' + k + '</text>');
-    });
-    var labelY = {};
-    var lastOn = series[0][n - 1], lastOff = series[1][n - 1];
-    labelY[0] = Math.max(T + 10, y(lastOn) - 9); labelY[1] = Math.min(H - B - 4, y(lastOff) + 16);
-    if (Math.abs(labelY[1] - labelY[0]) < 13) labelY[1] = labelY[0] + 13;
-    [[1, "var(--off)"], [0, "var(--on)"]].forEach(function (p) {
-      var s = series[p[0]].slice(0, n);
-      g.push('<path d="' + s.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join(" ") + '" fill="none" stroke="' + p[1] + '" stroke-width="2.4" stroke-linejoin="round"/>');
-      var last = s[s.length - 1];
-      g.push('<circle cx="' + x(s.length - 1) + '" cy="' + y(last) + '" r="4" fill="' + p[1] + '"/>');
-      var ly = labelY[p[0]];
-      g.push('<text class="tick" x="' + (x(s.length - 1) - 8) + '" y="' + ly + '" text-anchor="end" style="fill:' + p[1] + '">' + (p[0] ? "off " : "on ") + Math.round(last * 100) + '%</text>');
-    });
-    svg.innerHTML = g.join("");
-  }
-
-  function know(i) { return i >= 0 ? on.episodes[i].knowledge[agent] : { strategies: [], partners: {} }; }
-  function diffCount(a, b) {
-    var oldS = {}; a.strategies.forEach(function (s) { oldS[s] = 1; });
-    var c = b.strategies.filter(function (s) { return !oldS[s]; }).length;
-    var newS = {}; b.strategies.forEach(function (s) { newS[s] = 1; });
-    c += a.strategies.filter(function (s) { return !newS[s]; }).length;
-    Object.keys(b.partners).forEach(function (k) { var o = a.partners[k], p = b.partners[k]; if (!o || o.tendency !== p.tendency || o.reliability !== p.reliability) c++; });
-    return c;
-  }
-
-  function render() {
-    var n = Math.min(on.episodes.length, off.episodes.length);
-    $("posout").textContent = (idx + 1) + " of " + n;
-    // changes strip
-    var W = 560, H = 48, bw = W / n, g = [], maxc = 1, cs = [];
-    for (var i = 0; i < n; i++) { var c = diffCount(know(i - 1), know(i)); cs.push(c); maxc = Math.max(maxc, c); }
-    cs.forEach(function (c, i) {
-      var h = c ? 4 + (H - 14) * c / maxc : 1.5;
-      g.push('<rect x="' + (i * bw + bw * 0.15) + '" y="' + (H - 6 - h) + '" width="' + (bw * 0.7) + '" height="' + h + '" fill="var(--on)" opacity="' + (i === idx ? 1 : 0.55) + '"/>');
-      if (!on.episodes[i].answers.agent_c.round1_correct) g.push('<rect x="' + (i * bw) + '" y="' + (H - 4) + '" width="' + bw + '" height="4" fill="var(--bad)"/>');
-    });
-    g.push('<rect x="' + (idx * bw) + '" y="0" width="' + bw + '" height="' + H + '" fill="none" stroke="var(--fg)" stroke-width="1.5"/>');
-    $("chg").innerHTML = g.join("");
-
-    // problem
-    var e = on.episodes[idx], eo = off.episodes[idx];
-    var row = function (lab, ep) {
-      return '<tr><td>' + lab + '</td>' + AG.map(function (a) {
-        var v = ep.answers[a];
-        return '<td><span class="' + (v.round1_correct ? "ok" : "no") + '">' + esc(v.round1) + '</span> → <span class="' + (v.final_correct ? "ok" : "no") + '">' + esc(v.final) + '</span></td>';
-      }).join("") + '<td class="' + (ep.team_correct ? "ok" : "no") + '">' + esc(ep.team_answer) + '</td></tr>';
-    };
-    $("prob").innerHTML = '<div class="id">' + esc(e.problem) + ' · answer key ' + esc(e.gold) + '</div>' +
-      '<table class="ans"><thead><tr><th></th>' + AG.map(function (a) { return '<th>' + NAME[a] + '</th>'; }).join("") + '<th>Team</th></tr></thead><tbody>' +
-      row("On", e) + row("Off", eo) + '</tbody></table>' +
-      '<p class="sub" style="margin:0.6rem 0 0">Each cell: first answer → answer after reading the others.</p>';
-
-    // knowledge
-    var k = know(idx), p = know(idx - 1);
-    var oldS = {}; p.strategies.forEach(function (s) { oldS[s] = 1; });
-    var newS = {}; k.strategies.forEach(function (s) { newS[s] = 1; });
-    var dropped = p.strategies.filter(function (s) { return !newS[s]; });
-    var hh = '<div><h3>Interaction strategies <span>' + k.strategies.length + ' after this problem</span></h3>' +
-      (k.strategies.length ? '<ul>' + k.strategies.map(function (s) { return '<li class="' + (oldS[s] ? "" : "new") + '">' + esc(s) + '</li>'; }).join("") +
-        dropped.map(function (s) { return '<li class="removed">' + esc(s) + '</li>'; }).join("") + '</ul>' : '<div class="none">none yet</div>') + '</div>';
-    var pk = Object.keys(k.partners);
-    hh += '<div><h3>Partner profiles <span>' + NAME[agent] + "'s view of the others</span></h3>" +
-      (pk.length ? '<ul>' + pk.map(function (name) {
-        var v = k.partners[name], o = p.partners[name];
-        var cls = !o ? "new" : (o.tendency !== v.tendency || o.reliability !== v.reliability) ? "chg" : "";
-        return '<li class="' + cls + '"><b>' + esc(NAME[name] || name) + '</b>: ' + esc(v.tendency) + ' <span class="rel">(' + esc(v.reliability) + ')</span></li>';
-      }).join("") + '</ul>' : '<div class="none">none yet</div>') + '</div>';
-    hh += '<p class="sub" style="margin:0">Green: added after this problem. Yellow: rewritten. Struck through: dropped. Memory at this point holds ' + k.episodic + ' episodic entries and ' + k.semantic + ' facts.</p>';
-    $("know").innerHTML = hh;
+  function renderK() {
+    var ks = chain._ckpts, e = ks[idx], pe = idx > 0 ? ks[idx - 1] : null;
+    $("posout").textContent = e + " of " + ks[ks.length - 1];
+    var k = (chain.knowledge[e] || {})[agent] || { strategies: [], partners: {} };
+    var p = pe != null ? ((chain.knowledge[pe] || {})[agent] || { strategies: [], partners: {} }) : { strategies: [], partners: {} };
+    var old = {}; p.strategies.forEach(function (s) { old[s.key + "|" + s.text] = 1; });
+    var title = k.from_semantic ? "Semantic knowledge" : "Interaction strategies";
+    $("strat").innerHTML = '<h3>' + title + ' <span>' + k.strategies.length + ' entries · ' + esc(label(agent)) + '</span></h3>' +
+      (k.strategies.length ? '<ul>' + k.strategies.map(function (s) {
+        return '<li class="' + (old[s.key + "|" + s.text] ? "" : "new") + '">' + (s.key ? '<span class="k">' + esc(s.key.replace(/_/g, " ")) + '</span>' : '') + esc(s.text) + (s.confidence ? '<span class="c">' + esc(s.confidence) + '</span>' : '') + '</li>';
+      }).join("") + '</ul>' : '<div class="none">none at this checkpoint</div>');
+    var names = Object.keys(k.partners);
+    $("prof").innerHTML = '<h3>Partner profiles <span>' + names.length + ' peers</span></h3>' +
+      (names.length ? '<ul>' + names.map(function (n) {
+        var v = k.partners[n], o = p.partners[n];
+        var cls = !o || o.tendency !== v.tendency || o.reliability !== v.reliability ? "new" : "";
+        return '<li class="' + cls + '"><b>' + esc(n.replace(/_/g, " ")) + '</b>: ' + esc(v.tendency) + ' <span class="c">' + esc(v.reliability) + '</span></li>';
+      }).join("") + '</ul>' : '<div class="none">' + (k.from_semantic ? "this code version kept no separate partner profiles" : "none at this checkpoint") + '</div>');
   }
 })();
 </script>
