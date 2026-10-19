@@ -145,3 +145,23 @@ def test_mock_demo_runs_offline(tmp_path, capsys, monkeypatch):
     log = json.loads((tmp_path / "run.json").read_text())["log"]
     assert [e["result"]["deal"] for e in log] == [48.0, 50.0, 52.0]
     assert "Open at $54 and hold" in (tmp_path / "memory" / "Lena" / "KNOWLEDGE.md").read_text()
+
+
+def test_persistent_facts_expire_when_not_seen_again(tmp_path):
+    import json as _json
+    from evolvemas import EvolveMAS, ScriptedLLM
+
+    def respond(system, user):
+        if "Revise the knowledge" in user:
+            return _json.dumps({"strategies": [], "partners": {}})
+        fact = [{"key": "old_fact", "value": "x", "confidence": "high", "scope": "persistent"}] if "episode 0," in user else []
+        return _json.dumps({"episodic": [], "semantic": fact, "working": ""})
+
+    p = EvolveMAS(tmp_path, ScriptedLLM(respond), fact_ttl=2)
+    p.register("a")
+    for ep in range(5):
+        p.begin_episode("a")
+        p.observe("a", ["something happened"])
+        alive = "old_fact" in p.state("a").semantic
+        assert alive == (ep <= 2), (ep, alive)       # kept for 2 episodes after last seen, then dropped
+        p.end_episode("a", {"ok": True})

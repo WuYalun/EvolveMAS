@@ -46,17 +46,19 @@ class OpenAICompatLLM:
     """Any OpenAI-compatible chat endpoint (the setup the original experiments used)."""
 
     def __init__(self, model: str, base_url: Optional[str] = None, api_key: Optional[str] = None,
-                 temperature: float = 0.2):
+                 temperature: float = 0.2, extra_body: Optional[dict] = None):
         from openai import OpenAI
         self.client = OpenAI(base_url=base_url, api_key=api_key)
         self.model = model
         self.temperature = temperature
+        self.extra_body = extra_body      # provider-specific fields, e.g. {"enable_thinking": False} on DashScope
         self.usage = {"input_tokens": 0, "output_tokens": 0, "calls": 0}
 
     def __call__(self, system: str, user: str) -> str:
         resp = self.client.chat.completions.create(
             model=self.model,
             temperature=self.temperature,
+            extra_body=self.extra_body,
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         )
         self.usage["calls"] += 1

@@ -59,6 +59,8 @@ class HttpLLM:
             url = (self.base_url or "https://api.openai.com/v1") + "/chat/completions"
             body = {"model": self.model, "temperature": 0.2,
                     "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+            if "dashscope" in self.base_url:      # Alibaba Model Studio: answer directly, no thinking phase
+                body["enable_thinking"] = False
             headers = {"content-type": "application/json", "authorization": f"Bearer {self.api_key}"}
 
         xhr = XMLHttpRequest.new()
@@ -141,7 +143,7 @@ def handle(msg_json):
         elif msg["cmd"] == "run":
             for _ in range(int(msg.get("episodes", 1))):
                 _session.run_episode()
-        emit({"t": "idle"})
+        emit({"t": "idle", "cmd": msg["cmd"]})
     except Exception as e:
         emit({"t": "error", "msg": str(e)})
-        emit({"t": "idle"})
+        emit({"t": "idle", "cmd": msg["cmd"], "failed": True})

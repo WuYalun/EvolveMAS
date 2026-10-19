@@ -85,6 +85,17 @@ def evaluate(problem, replies):
             "first_round_correct": sum(v["round1_correct"] for v in answers.values()), "answers": answers}
 
 
+def result_for(agent, result):
+    """What end_episode() receives for one agent: its own outcome and its partners', without the
+    answer key, so the knowledge it distills is about things it can act on next time."""
+    me = result["answers"][agent]
+    return {"problem": result["problem"],
+            "my_first_answer_correct": me["round1_correct"], "my_final_answer_correct": me["final_correct"],
+            "team_answer_correct": result["team_correct"],
+            "partners": {b: {"first_answer_correct": v["round1_correct"], "final_answer_correct": v["final_correct"]}
+                         for b, v in result["answers"].items() if b != agent}}
+
+
 def run_episode(plugin, llm, problem, on_event=lambda e: None):
     """One debate. Every agent sees the question and, from round 2 on, the others' replies."""
     for a in AGENTS:
@@ -106,7 +117,7 @@ def run_episode(plugin, llm, problem, on_event=lambda e: None):
     result = evaluate(problem, replies)
     on_event({"t": "result", "result": result})
     for a in AGENTS:
-        plugin.end_episode(a, result)
+        plugin.end_episode(a, result_for(a, result))
         on_event({"t": "end_episode", "agent": a})
     return result
 
@@ -143,7 +154,8 @@ def mock_respond_factory(problems):
         if system == prompts.EVOLVE_SYSTEM:
             me = re.search(r"Agent: (agent_[abc])", user).group(1)
             res = json.loads(re.search(r"Task-native result r_e:\n(\{.*?\})\n\nStructured Memory", user, re.S).group(1))
-            c = res["answers"]["agent_c"]
+            c = {"round1_correct": res["my_first_answer_correct"]} if me == "agent_c" else \
+                {"round1_correct": res["partners"]["agent_c"]["first_answer_correct"]}
             if me == "agent_c":
                 strategies = (["Write out each step and check the arithmetic before giving a first answer."]
                               if not c["round1_correct"] else

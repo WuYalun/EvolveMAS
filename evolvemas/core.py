@@ -36,6 +36,7 @@ class EvolveMAS:
         max_strategies: int = 8,
         inject_max_chars: int = 4000,
         history: bool = True,         # append a full snapshot to history.jsonl on every save
+        fact_ttl: Optional[int] = 5,  # drop persistent facts not re-observed for this many episodes (None keeps them)
     ):
         self.root = Path(store_dir)
         self.root.mkdir(parents=True, exist_ok=True)
@@ -47,6 +48,7 @@ class EvolveMAS:
         self.max_strategies = max_strategies
         self.inject_max_chars = inject_max_chars
         self.history = history
+        self.fact_ttl = fact_ttl
         self._stores: Dict[str, AgentStore] = {}
         self._states: Dict[str, AgentState] = {}
 
@@ -77,7 +79,8 @@ class EvolveMAS:
         for aid in [agent_id] if agent_id else self.agents():
             st = self._states[aid]
             st.working = ""
-            st.semantic = {k: v for k, v in st.semantic.items() if v.scope != "episode"}
+            st.semantic = {k: v for k, v in st.semantic.items()
+                           if v.scope != "episode" and (self.fact_ttl is None or st.episode - v.last_seen <= self.fact_ttl)}
             st.turn = 0
             self._stores[aid].save(st, "begin_episode")
 

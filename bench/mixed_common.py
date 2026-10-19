@@ -40,7 +40,8 @@ class RetryLLM:
             try:
                 return self.llm(system, user)
             except Exception as e:  # openai.APIConnectionError, timeouts, 5xx
-                if i == self.tries - 1 or "connection" not in type(e).__name__.lower() and "timeout" not in type(e).__name__.lower() and "internalserver" not in type(e).__name__.lower():
+                transient = any(s in type(e).__name__.lower() for s in ("connection", "timeout", "internalserver", "ratelimit"))
+                if i == self.tries - 1 or not transient:
                     raise
                 wait = min(60, 2 ** i * 3)
                 print(f"  network error ({type(e).__name__}), retrying in {wait}s", flush=True)

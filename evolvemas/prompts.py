@@ -29,8 +29,11 @@ Update the memory. Return JSON with exactly these keys:
   "episodic": ["<one-line event summary>", ...],   // 0-2 NEW events from the evidence only; no repeats of existing entries
   "semantic": [{{"key": "<snake_case>", "value": "<fact>", "confidence": "low|medium|high", "scope": "episode|persistent"}}, ...],
                                                      // facts or regularities; reuse an existing key to revise it.
-                                                     // scope=episode: true only in this episode (current offers, deal status, who said what).
-                                                     // scope=persistent: should still hold next episode (item facts, partner regularities).
+                                                     // scope=episode: anything specific to this episode's task instance: its numbers, names,
+                                                     //   items, intermediate results, answers, offers, deal status, who said what.
+                                                     // scope=persistent: only regularities that should still help in a different, future
+                                                     //   episode, such as how a partner tends to behave or a rule of the task family.
+                                                     //   When unsure, use episode.
   "working": "<2-4 lines: current focus, latest position of each party, next step>"
 }}
 Rules: record what happened, not advice. A fact seen once is low confidence. Keep each line under 160 characters."""
@@ -63,6 +66,8 @@ Revise the knowledge, conditioned on the result. Return JSON:
                                          // rewrite or drop ones the result contradicts, add new ones the evidence supports
   "partners": {{"<peer name>": {{"tendency": "<behaviour across episodes>", "reliability": "high|medium|low - <reason>"}}}}
 }}
-Rules: a strategy must name a concrete action and when to use it, not a topic word.
+Rules: a strategy must name a concrete action this agent can take itself, and when to take it, not a topic word.
+Base strategies on what helped or hurt this agent's own outcome. Never refer to the answer key, ground truth,
+or anything else the agent cannot see while an episode is running.
 Describe partners by behaviour only, never by roles or labels assigned for a single episode.
 Only include peers that appear in the evidence."""

@@ -318,6 +318,7 @@ plugin.<span class="hm">observe</span>(<span class="s">"agent_c"</span>, round_m
       <select id="provider">
         <option value="anthropic">Anthropic</option>
         <option value="openai">OpenAI-compatible</option>
+        <option value="dashscope">Alibaba Model Studio (DashScope)</option>
       </select>
     </label>
     <label for="model">Model
@@ -327,6 +328,7 @@ plugin.<span class="hm">observe</span>(<span class="s">"agent_c"</span>, round_m
         <option value="claude-sonnet-5-5"></option>
         <option value="claude-haiku-4-5"></option>
         <option value="gpt-4.1-mini"></option>
+        <option value="qwen-plus"></option>
       </datalist>
     </label>
     <label for="apikey">API key
@@ -335,7 +337,7 @@ plugin.<span class="hm">observe</span>(<span class="s">"agent_c"</span>, round_m
     <label for="baseurl">Base URL (optional)
       <input id="baseurl" autocomplete="off" placeholder="https://api.anthropic.com">
     </label>
-    <p class="note">Your browser calls the provider directly. The key is kept in this tab's memory, is never stored, and is never sent anywhere else. One problem is about 15 model calls: 6 answers, 6 memory updates and 3 knowledge updates.</p>
+    <p class="note">Your browser calls the provider directly. The key is kept in this tab's memory, is never stored, and is never sent anywhere else. One problem is about 15 model calls: 6 answers, 6 memory updates and 3 knowledge updates. All three agents and the MemoryAgent use the model you enter.</p>
   </div>
 
   <div class="status" aria-live="polite">
@@ -623,15 +625,17 @@ var ARXIV_ID = "";
           (u.input_tokens ? " · " + u.input_tokens.toLocaleString() + " in / " + u.output_tokens.toLocaleString() + " out tokens" : "");
         break;
       case "error": showError(ev.msg); break;
-      case "idle": setBusy(false); break;
+      case "idle": if (ev.cmd === "run" || ev.failed) setBusy(false); break;
     }
   }
 
   /* ---------------- controls ---------------- */
   function backend() {
     if (state.mode === "sim") return { kind: "sim" };
-    return { kind: "live", provider: $("provider").value, model: $("model").value.trim(),
-             api_key: $("apikey").value.trim(), base_url: $("baseurl").value.trim() };
+    var prov = $("provider").value, base = $("baseurl").value.trim();
+    if (prov === "dashscope") { prov = "openai"; base = base || "https://dashscope.aliyuncs.com/compatible-mode/v1"; }
+    return { kind: "live", provider: prov, model: $("model").value.trim(),
+             api_key: $("apikey").value.trim(), base_url: base };
   }
   function newSession() {
     state.series[state.evolve ? "on" : "off"] = [];
@@ -681,9 +685,9 @@ var ARXIV_ID = "";
     if (state.ready) newSession();
   }
   $("provider").onchange = function () {
-    var a = this.value === "anthropic";
-    $("model").value = a ? "claude-opus-5-5" : "gpt-4.1-mini";
-    $("baseurl").placeholder = a ? "https://api.anthropic.com" : "https://api.openai.com/v1";
+    var v = this.value;
+    $("model").value = { anthropic: "claude-opus-5-5", openai: "gpt-4.1-mini", dashscope: "qwen-plus" }[v];
+    $("baseurl").placeholder = { anthropic: "https://api.anthropic.com", openai: "https://api.openai.com/v1", dashscope: "https://dashscope.aliyuncs.com/compatible-mode/v1" }[v];
   };
 
   /* ---------------- rendering ---------------- */

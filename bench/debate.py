@@ -25,7 +25,12 @@ from recorder import Recorder, TracedEvolveMAS  # noqa: E402
 
 from evolvemas import OpenAICompatLLM, ScriptedLLM  # noqa: E402
 
-AGENT_MODEL, SMALL_MODEL, MEMORY_MODEL = "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini"
+PROVIDERS = {
+    # name: (key env var, base_url, extra request fields, agent model, small model for agent_c, MemoryAgent model)
+    "openai": ("OPEN_AI_KEY", None, None, "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4o-mini"),
+    "dashscope": ("DASHSCOPE_API_KEY", "https://dashscope.aliyuncs.com/compatible-mode/v1", {"enable_thinking": False},
+                  "qwen-plus", "qwen3.6-35b-a3b", "qwen3.8-flash"),
+}
 
 
 def main():
@@ -36,17 +41,18 @@ def main():
     ap.add_argument("--data", default=None, help="GSM8K jsonl (default: examples/data/gsm8k_test_first10.jsonl)")
     ap.add_argument("--baseline", action="store_true", help="plug-in attached with online and evolve off")
     ap.add_argument("--long-out", default=None, help="also write a compact per-problem summary (results + knowledge)")
+    ap.add_argument("--provider", choices=sorted(PROVIDERS), default="openai")
     args = ap.parse_args()
 
     problems = D.load_problems(args.data) if args.data else D.load_problems()
     if args.dry_run:
         agent_llm = small_llm = mem_llm = ScriptedLLM(D.mock_respond_factory(problems))
-    else:
+    env, base_url, extra, AGENT_MODEL, SMALL_MODEL, MEMORY_MODEL = PROVIDERS[args.provider]
+    if not args.dry_run:
         import os
-        key = os.environ["OPEN_AI_KEY"]
-        agent_llm = RetryLLM(OpenAICompatLLM(AGENT_MODEL, api_key=key, temperature=0.2))
-        small_llm = RetryLLM(OpenAICompatLLM(SMALL_MODEL, api_key=key, temperature=0.2))
-        mem_llm = RetryLLM(OpenAICompatLLM(MEMORY_MODEL, api_key=key, temperature=0.2))
+        key = os.environ[env]
+        mk = lambda m: RetryLLM(OpenAICompatLLM(m, api_key=key, base_url=base_url, temperature=0.2, extra_body=extra))
+        agent_llm, small_llm, mem_llm = mk(AGENT_MODEL), mk(SMALL_MODEL), mk(MEMORY_MODEL)
 
     rec = Recorder(
         "debate", "Multiagent debate · GSM8K",
@@ -92,7 +98,7 @@ def main():
         res["summary"] = ("team correct" if res["team_correct"] else "team wrong") + f" · {res['first_round_correct']}/3 first answers right"
         rec.result(res)
         for a in D.AGENTS:
-            plugin.end_episode(a, res)
+            plugin.end_episode(a, D.result_for(a, res))
         print(f"episode {ep}: {p['id']} gold={res['gold']} team={res['team_answer']} "
               f"first-round {res['first_round_correct']}/3 "
               + " ".join(f"{a}:{v['round1']}->{v['final']}" for a, v in res["answers"].items()), flush=True)
