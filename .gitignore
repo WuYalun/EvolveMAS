@@ -1,4 +1,4 @@
-runs/
+/runs/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -8,3 +8,4 @@ dist/
 .venv/
 .env
 _site/
+bench/data/cache/

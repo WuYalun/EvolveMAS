@@ -1,0 +1,18 @@
+{
+ "source": "SOTOPIA (Zhou et al., ICLR 2024), sotopia_episodes_v1 on Hugging Face (cmu-lti/sotopia)",
+ "environment_id": "01H7VFHQ11NAMZS4A2RDGDB01V",
+ "codename": "craigslist_bargains_00007",
+ "scenario": "An individual is offering an Antique Oak Accent Table for sale at $60.00, while another is keen on purchasing it. The item is a magnificent antique oak parlor table, dating back to the late 1800s, making it a fantastic addition to any home or workspace. The table offers two levels, suitable for usage as an end table, a lamp table, or any other purpose. It's in top-notch condition, boasting a dark brown antique oak color and patina. The table is robust, with solid and strong joints, and it's free from marks, cracks, or damage. It features a 24-inch X 24-inch square top and a 16-inch X 18-inch lower shelf.",
+ "agents": [
+  {
+   "name": "Giselle Rousseau",
+   "background": "Giselle Rousseau is a 21-year-old nonbinary art student. They/them pronouns. Giselle Rousseau enjoys biking and photography. Personality and values description: Giselle Rousseau, open-minded and outgoing yet sensitive, advocates care and fairness. Her decision-making is intuitive and inclusive. Giselle's secrets: Sells forged paintings to wealthy clients",
+   "goal": "You are the buyer for this item and your target price is $30.0. If you purchase it for a price significantly higher than this, you will incur a penalty. However, if you successfully manage to buy it for less than the target price, you will receive a bonus."
+  },
+  {
+   "name": "Zane Bennett",
+   "background": "Zane Bennett is a 38-year-old male graphic designer. He/him pronouns. Zane Bennett finds solace in music and often plays the guitar in his downtime.  Personality and values description: Zane Bennett is creative and outgoing, he values achievement and fairness. His decision-making is unique, often finding novel solutions to problems. Zane's secrets: He's secretly engaged to his best friend's ex.",
+   "goal": "You are the seller of this item, with a target price set at $58.6. Be aware that you may face penalties if you sell this item for a significantly lower than the target price. However, if you are successful in selling it above the target price, you will receive a bonus."
+  }
+ ]
+}

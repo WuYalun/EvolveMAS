@@ -14,5 +14,9 @@ root = pathlib.Path("_site/py")
 files = sorted(str(p.relative_to(root)) for p in root.rglob("*.py"))
 version = tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"]
 (root / "manifest.json").write_text(json.dumps({"version": version, "files": files}, indent=1))
-print("site built:", len(files), "python files, version", version)
+runs = pathlib.Path("_site/runs")
+ids = sorted(p.stem for p in runs.glob("*.json") if p.stem != "index") if runs.exists() else []
+if runs.exists():
+    (runs / "index.json").write_text(json.dumps({"traces": ids}))
+print("site built:", len(files), "python files, version", version, "| traces:", ", ".join(ids) or "none")
 PY

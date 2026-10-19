@@ -110,3 +110,15 @@ MIT
 
 The site in `docs/` runs this package in the browser with Pyodide. `scripts/build_site.sh` assembles `docs/` plus the package sources into `_site/`, and `.github/workflows/pages.yml` deploys it on every push to `main`, so the demo always runs the code in this repository. To preview locally: `scripts/build_site.sh && python -m http.server -d _site`.
 
+## Benchmark replays
+
+`docs/replay.html` replays recorded runs of this plug-in on one task from each benchmark in the paper: BBH, HumanEval, SOTOPIA, LLM-Deliberation and Werewolf. Each host script in `bench/` runs the benchmark with every agent attached to `EvolveMAS`, and `bench/recorder.py` writes every message, every hook call (with the MemoryAgent's input and output) and every result to `docs/runs/<benchmark>.json`.
+
+```bash
+export OPEN_AI_KEY=...                        # agents: gpt-4.1-mini, MemoryAgent: gpt-4o-mini
+python bench/sotopia.py --episodes 3          # writes docs/runs/sotopia.json
+python bench/werewolf.py --dry-run            # scripted backend, no API calls
+```
+
+These are demonstration runs on real benchmark tasks, not the runs reported in the paper. All five recordings together cost about US$0.30.
+

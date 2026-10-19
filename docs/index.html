@@ -25,6 +25,7 @@
   --cross: #1c8564;       /* cross-episode evolution: end_episode */
   --lena: #1c8564;
   --marco: #7a4fd0;
+  --coop: #17866a; --mixed: #d9701f; --adv: #d64545;
   --warn: #b5452f;
   --new-bg: #e2f5ec;
   --code-bg: #0f1722;
@@ -37,14 +38,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
-    --within: #6d9dff; --cross: #4cc39b; --lena: #4cc39b; --marco: #b294ff; --warn: #f08a72; --new-bg: #173628;
+    --within: #6d9dff; --cross: #4cc39b; --lena: #4cc39b; --marco: #b294ff; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373; --warn: #f08a72; --new-bg: #173628;
     --code-bg: #0a0f15; --code-fg: #dfe7f1;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
-  --within: #6d9dff; --cross: #4cc39b; --lena: #4cc39b; --marco: #b294ff; --warn: #f08a72; --new-bg: #173628;
+  --within: #6d9dff; --cross: #4cc39b; --lena: #4cc39b; --marco: #b294ff; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373; --warn: #f08a72; --new-bg: #173628;
   --code-bg: #0a0f15; --code-fg: #dfe7f1;
   color-scheme: dark;
 }
@@ -192,6 +193,7 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
   <p class="sub">A plug-in for multi-agent systems. Each agent gets its own MemoryAgent that keeps structured memory during an episode, and knowledge about partners and strategies that carries into the next one. Model weights stay frozen; integration is three calls.</p>
   <div class="cta">
     <div class="install"><span id="pipcmd">pip install "evolvemas[anthropic] @ git+https://github.com/WuYalun/EvolveMAS"</span><button type="button" data-copy="pipcmd">Copy</button></div>
+    <a class="btn" href="replay.html"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Benchmark replays</a>
     <a class="btn" href="https://github.com/WuYalun/EvolveMAS" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.2 19.5c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.3-3.4-1.3-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.4 1.1 2.9.8.1-.6.3-1.1.6-1.3-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.8 1a9.6 9.6 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.4 4.7-4.6 5 .4.3.7.9.7 1.9V21c0 .3.2.6.7.5A10 10 0 0 0 12 2z"/></svg>GitHub</a>
   </div>
 </header>
@@ -285,6 +287,23 @@ footer { border-top: 1px solid var(--rule); padding-block: 2rem 3rem; color: var
     </div>
   </div>
 </div>
+
+<!-- ======================= REPLAYS ======================= -->
+<section id="replays">
+  <p class="sec-label">On real benchmarks</p>
+  <div class="split">
+    <div>
+      <h2>Watch it on the paper's five benchmarks</h2>
+      <p>We ran the plug-in on one task from each benchmark in the paper, with every agent attached, and recorded everything: who said what to whom, what each MemoryAgent read and wrote, and how knowledge changed after each episode. Step through the recordings to follow the data flow.</p>
+      <a class="btn" href="replay.html">Open the replays</a>
+    </div>
+    <div class="hooks">
+      <div class="hook"><code style="color:var(--coop)">BBH · HumanEval</code><span>Cooperative: agents solve a reasoning question together; a planner, developer and tester write and test code.</span></div>
+      <div class="hook"><code style="color:var(--mixed)">SOTOPIA · LLM-Deliberation</code><span>Mixed-motive: a buyer and seller bargain; six parties negotiate a multi-issue deal.</span></div>
+      <div class="hook"><code style="color:var(--adv)">Werewolf</code><span>Adversarial: hidden roles, private night actions, public accusations and a vote.</span></div>
+    </div>
+  </div>
+</section>
 
 <!-- ======================= INSTALL ======================= -->
 <section id="use">

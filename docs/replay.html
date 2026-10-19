@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EvolveMAS Benchmark Replays</title>
+<meta name="description" content="Step through recorded EvolveMAS runs on BBH, HumanEval, SOTOPIA, LLM-Deliberation and Werewolf: every message, every memory update and every knowledge update.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%231c8564%22/%3E%3Cpath d=%22M9 9h13v3H13v3h8v3h-8v3h9v3H9z%22 fill=%22white%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: benchmark tabs, then a replay console: stage (agents + data flow) left, inspector right; transport under the stage. */
+:root {
+  --bg: #f6f8fa; --surface: #ffffff; --surface-2: #eef2f6; --fg: #16202c; --muted: #5a6878; --rule: #d9e0e8;
+  --within: #1f5fd6; --cross: #1c8564; --coop: #17866a; --mixed: #d9701f; --adv: #d64545;
+  --private: #7a4fd0; --env: #8a6d1c; --new-bg: #e2f5ec; --chg-bg: #fff3d6;
+  --code-bg: #0f1722; --code-fg: #dfe7f1;
+  --font-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
+    --within: #6d9dff; --cross: #4cc39b; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373;
+    --private: #b294ff; --env: #d9b65a; --new-bg: #173628; --chg-bg: #3a3017; --code-bg: #0a0f15;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141b; --surface: #151d27; --surface-2: #1b2531; --fg: #e4eaf1; --muted: #9aa8b8; --rule: #273343;
+  --within: #6d9dff; --cross: #4cc39b; --coop: #4cc39b; --mixed: #f0974f; --adv: #f07373;
+  --private: #b294ff; --env: #d9b65a; --new-bg: #173628; --chg-bg: #3a3017; --code-bg: #0a0f15;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 400 1rem/1.55 var(--font-body); padding-inline: 1rem; padding-block: 0; }
+a { color: var(--within); text-underline-offset: 0.18em; }
+button, select, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--within); outline-offset: 2px; border-radius: 4px; }
+code, .mono { font-family: var(--font-mono); font-size: 0.86em; }
+.wrap { max-width: 82rem; margin-inline: auto; }
+
+header { padding-block: 2rem 1.2rem; display: flex; flex-wrap: wrap; gap: 0.8rem 2rem; align-items: end; justify-content: space-between; }
+.back { font: 500 0.8rem/1 var(--font-mono); color: var(--muted); text-decoration: none; }
+h1 { font: 800 clamp(1.8rem, 4vw, 2.6rem)/1.05 var(--font-display); margin: 0.5rem 0 0; letter-spacing: -0.01em; }
+h1 .evolve { color: var(--cross); }
+.lede { color: var(--muted); max-width: 62ch; margin: 0.5rem 0 0; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.tab { border: 1px solid var(--rule); background: var(--surface); border-radius: 10px; padding: 0.55rem 0.9rem; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 0.1rem; min-width: 8.5rem; }
+.tab b { font: 700 1rem/1.2 var(--font-display); }
+.tab span { font: 500 0.68rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.tab[data-setting="cooperative"] span { color: var(--coop); }
+.tab[data-setting="mixed-motive"] span { color: var(--mixed); }
+.tab[data-setting="adversarial"] span { color: var(--adv); }
+.tab[aria-selected="true"] { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+.tab.missing { opacity: 0.45; cursor: default; }
+
+.console { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.about { padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+@media (min-width: 64rem) { .about { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); } }
+.about h2 { font: 700 1.2rem/1.25 var(--font-display); margin: 0; }
+.about p { margin: 0.2rem 0 0; color: var(--muted); font-size: 0.93rem; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 0.15rem 0.8rem; font-size: 0.85rem; align-content: start; }
+.facts dt { color: var(--muted); font: 500 0.72rem/1.6 var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
+.facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; max-height: 7.5em; overflow-y: auto; }
+
+.episodes { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0.7rem 1.2rem; border-bottom: 1px solid var(--rule); align-items: center; }
+.episodes .lab { font: 500 0.7rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-right: 0.3rem; }
+.ep { border: 1px solid var(--rule); border-radius: 8px; padding: 0.35rem 0.65rem; background: transparent; cursor: pointer; font-size: 0.88rem; }
+.ep[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.ep small { opacity: 0.8; margin-left: 0.3rem; font-family: var(--font-mono); font-size: 0.75rem; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 64rem) { .main { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } .inspector { border-left: 1px solid var(--rule); } }
+.stage-col { min-width: 0; display: flex; flex-direction: column; }
+.stage { position: relative; aspect-ratio: 4 / 3; max-height: 34rem; width: 100%; }
+.stage svg { width: 100%; height: 100%; display: block; }
+.stage .node-label { font: 600 13px var(--font-body); fill: var(--fg); }
+.stage .node-role { font: 400 11px var(--font-mono); fill: var(--muted); }
+.stage .ma-label, .stage .store-label { font: 500 9px var(--font-mono); fill: var(--muted); }
+.node-main { fill: var(--surface); stroke: var(--fg); stroke-width: 1.5; transition: stroke-width .2s; }
+.node-main.active { stroke-width: 4; }
+.node-main.selected { fill: var(--surface-2); }
+.ma { fill: var(--surface); stroke: var(--within); stroke-width: 1.2; }
+.store { fill: var(--surface-2); stroke: var(--rule); }
+.store.flash-m { fill: var(--within); }
+.store.flash-k { fill: var(--cross); }
+.link { stroke: var(--rule); stroke-width: 1; fill: none; }
+.envnode { fill: var(--surface-2); stroke: var(--env); stroke-width: 1.2; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; padding: 0.4rem 1.2rem 0.6rem; font-size: 0.8rem; color: var(--muted); }
+.legend i { display: inline-block; width: 1rem; height: 0.2rem; border-radius: 2px; vertical-align: 0.22em; margin-right: 0.35rem; }
+
+.transport { border-top: 1px solid var(--rule); padding: 0.7rem 1.2rem 0.9rem; display: flex; flex-direction: column; gap: 0.5rem; }
+.tbtns { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.tbtns button { border: 1px solid var(--rule); background: transparent; border-radius: 8px; padding: 0.35rem 0.7rem; cursor: pointer; font-size: 0.88rem; }
+.tbtns button.primary { background: var(--fg); color: var(--bg); border-color: var(--fg); min-width: 5.2rem; }
+.tbtns label { font-size: 0.85rem; color: var(--muted); display: inline-flex; gap: 0.35rem; align-items: center; }
+.tbtns select { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 0.25rem 0.4rem; font-size: 0.85rem; }
+.pos { margin-left: auto; font: 400 0.8rem/1 var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.scrub { position: relative; height: 1.4rem; cursor: pointer; }
+.scrub canvas { width: 100%; height: 100%; display: block; }
+
+.inspector { min-width: 0; display: flex; flex-direction: column; }
+.now { padding: 1rem 1.2rem; border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 0.5rem; min-height: 11rem; }
+.now .kind { font: 500 0.7rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; }
+.kind.msg { color: var(--fg); } .kind.private { color: var(--private); } .kind.env { color: var(--env); }
+.kind.hook-within { color: var(--within); } .kind.hook-cross { color: var(--cross); } .kind.result { color: var(--mixed); }
+.now .headline { font: 600 1rem/1.35 var(--font-body); }
+.bubble { background: var(--surface-2); border-radius: 8px; padding: 0.6rem 0.75rem; font-size: 0.92rem; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 14rem; overflow-y: auto; }
+details.raw { font-size: 0.85rem; }
+details.raw summary { cursor: pointer; color: var(--muted); }
+details.raw pre { background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 0.6rem 0.7rem; font: 400 0.75rem/1.5 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 18rem; overflow-y: auto; margin: 0.4rem 0 0; }
+
+.agentpanel { padding: 1rem 1.2rem 1.2rem; display: flex; flex-direction: column; gap: 0.6rem; min-width: 0; }
+.agentpanel .h { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: baseline; justify-content: space-between; }
+.agentpanel h3 { margin: 0; font: 700 1rem/1.2 var(--font-display); }
+.agentpicker { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.agentpicker button { border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 0.2rem 0.6rem; cursor: pointer; font-size: 0.8rem; }
+.agentpicker button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.mem { display: grid; gap: 0.7rem; font-size: 0.86rem; }
+.mem h4 { margin: 0 0 0.2rem; font: 500 0.7rem/1 var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; display: flex; gap: 0.5rem; align-items: center; }
+.mem h4.m { color: var(--within); } .mem h4.k { color: var(--cross); }
+.mem ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.15rem; }
+.mem li { padding: 0.12rem 0.35rem; border-radius: 4px; overflow-wrap: anywhere; }
+.mem li.new { background: var(--new-bg); }
+.mem li.chg { background: var(--chg-bg); }
+.mem .k { font-family: var(--font-mono); font-size: 0.82em; color: var(--muted); }
+.mem .none { color: var(--muted); font-style: italic; }
+.pill { display: inline-block; font: 500 0.68rem/1 var(--font-mono); padding: 0.18rem 0.35rem; border-radius: 4px; border: 1px solid currentColor; }
+
+.empty-state { padding: 3rem 1.2rem; text-align: center; color: var(--muted); }
+footer { padding-block: 2rem 3rem; color: var(--muted); font-size: 0.85rem; }
+@media (prefers-reduced-motion: reduce) { .node-main { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <a class="back" href="./">← EvolveMAS</a>
+    <h1>Benchmark replays</h1>
+    <p class="lede">Recorded runs of the <code>evolvemas</code> plug-in on one task from each of the paper's five benchmarks. Step through every message between agents, every memory update by each agent's MemoryAgent, and every knowledge update after an episode.</p>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Benchmarks" id="tabs"></nav>
+
+<div class="console" id="console">
+  <div class="about" id="about"><div class="empty-state">Loading recordings…</div></div>
+  <div class="episodes" id="episodes"></div>
+  <div class="main">
+    <div class="stage-col">
+      <div class="stage"><svg id="stage" viewBox="0 0 800 600" role="img" aria-label="Agents, their MemoryAgents and the data flowing between them"></svg></div>
+      <div class="legend">
+        <span><i style="background:var(--fg)"></i>message</span>
+        <span><i style="background:var(--private)"></i>private</span>
+        <span><i style="background:var(--within)"></i>memory (within episode)</span>
+        <span><i style="background:var(--cross)"></i>knowledge (across episodes)</span>
+        <span><i style="background:var(--env)"></i>environment</span>
+      </div>
+      <div class="transport">
+        <div class="tbtns">
+          <button type="button" id="prev" aria-label="Previous step">◀</button>
+          <button type="button" class="primary" id="play">Play</button>
+          <button type="button" id="next" aria-label="Next step">▶</button>
+          <label for="speed">Speed
+            <select id="speed"><option value="1800">Slow</option><option value="900" selected>Normal</option><option value="350">Fast</option></select>
+          </label>
+          <label for="filter">Show
+            <select id="filter"><option value="all" selected>All steps</option><option value="talk">Conversation and results</option><option value="mem">Memory and knowledge</option></select>
+          </label>
+          <span class="pos" id="pos"></span>
+        </div>
+        <div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="Replay position"><canvas id="scrubcv"></canvas></div>
+      </div>
+    </div>
+    <div class="inspector">
+      <div class="now" id="now"></div>
+      <div class="agentpanel">
+        <div class="h"><h3 id="agent-title">Agent state</h3><div class="agentpicker" id="picker"></div></div>
+        <div class="mem" id="mem"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Each recording is a JSON trace written by <code>bench/recorder.py</code> while the real plug-in ran. Nothing on this page is written by hand. <a href="https://github.com/WuYalun/EvolveMAS/tree/main/bench" target="_blank" rel="noopener">How the recordings were made</a>.</footer>
+</div>
+
+<script src="replay.js"></script>
+</body>
+</html>
